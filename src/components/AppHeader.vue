@@ -31,16 +31,18 @@ async function logout() {
       class="mx-auto flex min-h-[4.25rem] w-full max-w-7xl items-center justify-between gap-3 rounded-xl bg-[#252525]/92 px-3 py-3 shadow-[0_14px_36px_rgba(0,0,0,0.18)] backdrop-blur-[36px] sm:px-4"
     >
       <div class="flex min-w-0 items-center gap-2">
-        <button
-          v-if="showBackButton"
-          type="button"
-          class="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-[#303030] text-mist-300 transition hover:bg-[#353535] hover:text-ember-100"
-          title="Go back"
-          aria-label="Go back"
-          @click="goBack"
-        >
-          <ArrowLeft class="h-4 w-4" />
-        </button>
+        <Transition name="header-back">
+          <button
+            v-if="showBackButton"
+            type="button"
+            class="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-[#303030] text-mist-300 transition hover:bg-[#353535] hover:text-ember-100"
+            title="Go back"
+            aria-label="Go back"
+            @click="goBack"
+          >
+            <ArrowLeft class="h-4 w-4" />
+          </button>
+        </Transition>
         <RouterLink
           to="/"
           class="inline-flex min-w-0 items-center gap-2 rounded-lg px-1.5 py-1 text-mist-50 transition hover:text-brass-100"

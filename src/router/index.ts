@@ -1,10 +1,13 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { ref } from 'vue'
 import AuthView from '@/views/AuthView.vue'
 import HomeView from '@/views/HomeView.vue'
 import NotFoundView from '@/views/NotFoundView.vue'
 import PostView from '@/views/PostView.vue'
 import ProfileView from '@/views/ProfileView.vue'
 import { useAuthStore } from '@/stores/auth'
+
+export const routeTransitionName = ref('page-forward')
 
 export const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -50,8 +53,12 @@ export const router = createRouter({
   },
 })
 
-router.beforeEach((to) => {
+router.beforeEach((to, from) => {
   const auth = useAuthStore()
+  const historyState = window.history.state as { forward?: unknown } | null
+  routeTransitionName.value = historyState?.forward === from.fullPath
+    ? 'page-back'
+    : 'page-forward'
 
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
     return { name: 'signin', query: { redirect: to.fullPath } }
