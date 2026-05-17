@@ -17,10 +17,18 @@ export interface PostListItemResponse {
 }
 
 export interface PostDetailsResponse extends PostListItemResponse {
-  body: string
+  bodyHtml: string
+  readingMinutes: number
 }
 
 export interface PostListQuery {
+  offset?: number
+  limit?: number
+  search?: string
+  tags?: string[]
+}
+
+export interface TagListQuery {
   offset?: number
   limit?: number
   search?: string

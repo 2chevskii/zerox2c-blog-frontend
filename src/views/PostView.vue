@@ -9,16 +9,15 @@ import LoadingState from '@/components/LoadingState.vue'
 import PostArtwork from '@/components/PostArtwork.vue'
 import TagPill from '@/components/TagPill.vue'
 import { usePostsStore } from '@/stores/posts'
-import { estimateReadingMinutes, formatLongDate } from '@/utils/dates'
-import { renderMarkdown } from '@/utils/markdown'
+import { formatLongDate } from '@/utils/dates'
 
 const route = useRoute()
 const postsStore = usePostsStore()
 const { selectedPost, postError, isLoadingPost } = storeToRefs(postsStore)
 
 const slugOrId = computed(() => String(route.params.slug ?? ''))
-const articleHtml = computed(() => (selectedPost.value ? renderMarkdown(selectedPost.value.body) : ''))
-const readingMinutes = computed(() => estimateReadingMinutes(selectedPost.value?.body))
+const articleHtml = computed(() => selectedPost.value?.bodyHtml ?? '')
+const readingMinutes = computed(() => selectedPost.value?.readingMinutes ?? 1)
 const imageId = computed(() => selectedPost.value?.bannerImageId ?? selectedPost.value?.coverImageId ?? null)
 const pageTitle = computed(() =>
   selectedPost.value ? `${selectedPost.value.title} | 0x2c.dev` : '0x2c.dev',

@@ -19,12 +19,12 @@
   --color-concrete-300: #9f9b91;
   --color-concrete-500: #55524e;
   --color-concrete-700: #242323;
-  --color-concrete-900: #0d0d0d;
+  --color-concrete-900: #1a1a1a;
 }
 
 :root {
-  color: #eee7dc;
-  background: #0b0a0b;
+  color: #eeeeee;
+  background: #171717;
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
@@ -39,7 +39,7 @@
 html {
   min-width: 320px;
   min-height: 100%;
-  background: #0b0a0b;
+  background: #171717;
   color-scheme: dark;
 }
 
@@ -49,20 +49,14 @@ body {
   margin: 0;
   overflow-x: hidden;
   background:
-    radial-gradient(circle at 15% 8%, rgba(165, 22, 82, 0.18), transparent 30rem),
-    radial-gradient(circle at 92% 18%, rgba(148, 85, 36, 0.12), transparent 24rem),
-    linear-gradient(rgba(238, 231, 220, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(238, 231, 220, 0.02) 1px, transparent 1px),
-    repeating-linear-gradient(105deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 7px),
-    #0b0a0b;
+    linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+    #171717;
   background-size:
-    auto,
-    auto,
     38px 38px,
     38px 38px,
-    auto,
     auto;
-  color: #eee7dc;
+  color: #eeeeee;
 }
 
 button,
@@ -76,8 +70,8 @@ a {
 }
 
 ::selection {
-  background: rgba(165, 22, 82, 0.65);
-  color: #fff1f7;
+  background: rgba(238, 238, 238, 0.24);
+  color: #ffffff;
 }
 
 #app {
@@ -127,10 +121,10 @@ a {
 }
 
 .article-body a {
-  color: #ffafd2;
+  color: #f4f4f4;
   font-weight: 700;
   text-decoration: underline;
-  text-decoration-color: rgba(201, 39, 103, 0.58);
+  text-decoration-color: rgba(244, 244, 244, 0.45);
   text-underline-offset: 0.2em;
 }
 
@@ -148,12 +142,10 @@ a {
 }
 
 .article-body blockquote {
-  border-left: 4px solid #c47a37;
+  border-left: 4px solid #9f9b91;
   padding: 0.5rem 0 0.5rem 1rem;
   color: #eee7dc;
-  background:
-    repeating-linear-gradient(0deg, rgba(196, 122, 55, 0.1) 0 1px, transparent 1px 8px),
-    rgba(165, 22, 82, 0.08);
+  background: rgba(255, 255, 255, 0.045);
 }
 
 .article-body code {
@@ -161,7 +153,7 @@ a {
   border-radius: 3px;
   background: rgba(238, 231, 220, 0.06);
   padding: 0.12rem 0.32rem;
-  color: #f7d6ad;
+  color: #eeeeee;
   font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
   font-size: 0.9em;
 }
@@ -170,9 +162,7 @@ a {
   overflow-x: auto;
   border: 1px solid rgba(238, 231, 220, 0.13);
   border-radius: 4px;
-  background:
-    linear-gradient(90deg, rgba(165, 22, 82, 0.1), transparent 32%),
-    #11100f;
+  background: #1f1f1f;
   padding: 1rem;
 }
 
@@ -191,17 +181,12 @@ a {
 
 .loft-panel {
   border: 1px solid rgba(238, 231, 220, 0.13);
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.035), transparent 36%),
-    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 10px),
-    rgba(17, 16, 15, 0.9);
+  background: rgba(31, 31, 31, 0.92);
   box-shadow:
-    0 20px 60px rgba(0, 0, 0, 0.38),
+    0 18px 48px rgba(0, 0, 0, 0.28),
     inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .worn-edge {
-  box-shadow:
-    4px 4px 0 rgba(165, 22, 82, 0.22),
-    0 18px 50px rgba(0, 0, 0, 0.32);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.32);
 }

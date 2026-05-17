@@ -6,7 +6,7 @@ defineProps<{
 
 <template>
   <span
-    class="inline-flex h-7 items-center rounded-sm border border-cardboard-200/25 bg-cardboard-400/16 px-2.5 text-xs font-black uppercase tracking-normal text-cardboard-100"
+    class="inline-flex h-7 items-center rounded-sm border border-concrete-100/15 bg-concrete-100/10 px-2.5 text-xs font-black uppercase tracking-normal text-concrete-100"
   >
     {{ name }}
   </span>

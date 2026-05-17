@@ -2,7 +2,8 @@ import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { ApiError } from '@/api/http'
 import { getPublishedPost, getPublishedPosts } from '@/api/posts'
-import type { PostDetailsResponse, PostListItemResponse } from '@/types/api'
+import { getPublishedTags } from '@/api/tags'
+import type { PostDetailsResponse, PostListItemResponse, TagResponse } from '@/types/api'
 
 const pageSize = 9
 
@@ -10,6 +11,8 @@ export const usePostsStore = defineStore('posts', () => {
   const posts = ref<PostListItemResponse[]>([])
   const selectedPost = ref<PostDetailsResponse | null>(null)
   const search = ref('')
+  const selectedTags = ref<TagResponse[]>([])
+  const availableTags = ref<TagResponse[]>([])
   const offset = ref(0)
   const hasMore = ref(true)
   const listError = ref<string | null>(null)
@@ -42,6 +45,7 @@ export const usePostsStore = defineStore('posts', () => {
         offset: offset.value,
         limit: pageSize,
         search: search.value.trim() || undefined,
+        tags: selectedTags.value.map((tag) => tag.name),
       })
 
       const seenIds = new Set(posts.value.map((post) => post.id))
@@ -77,10 +81,30 @@ export const usePostsStore = defineStore('posts', () => {
     search.value = value
   }
 
+  async function fetchTags() {
+    try {
+      availableTags.value = await getPublishedTags({ limit: 100 })
+    } catch {
+      availableTags.value = []
+    }
+  }
+
+  function addTag(tag: TagResponse) {
+    if (!selectedTags.value.some((selectedTag) => selectedTag.name === tag.name)) {
+      selectedTags.value = [...selectedTags.value, tag]
+    }
+  }
+
+  function removeTag(name: string) {
+    selectedTags.value = selectedTags.value.filter((tag) => tag.name !== name)
+  }
+
   return {
     posts,
     selectedPost,
     search,
+    selectedTags,
+    availableTags,
     hasMore,
     listError,
     postError,
@@ -91,6 +115,9 @@ export const usePostsStore = defineStore('posts', () => {
     remainingPosts,
     fetchPosts,
     fetchPost,
+    fetchTags,
     setSearch,
+    addTag,
+    removeTag,
   }
 })
