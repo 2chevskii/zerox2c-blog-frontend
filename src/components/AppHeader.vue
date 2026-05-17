@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { LogIn, LogOut, User, UserPlus } from '@lucide/vue'
+import { LogIn, LogOut, UserPlus } from '@lucide/vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
@@ -17,25 +17,26 @@ async function logout() {
     <div class="mx-auto flex min-h-[4.25rem] w-full max-w-7xl justify-end rounded-xl bg-[#252525]/92 px-3 py-3 shadow-[0_14px_36px_rgba(0,0,0,0.18)] backdrop-blur-[36px] sm:px-4">
       <nav class="flex shrink-0 items-center gap-2" aria-label="Account navigation">
         <template v-if="auth.isAuthenticated">
-          <div class="hidden min-w-0 items-center gap-2 rounded-full border border-mist-50/10 bg-mist-50/6 px-3 py-2 sm:flex">
-            <User class="h-4 w-4 shrink-0 text-brass-100" />
-            <span class="max-w-32 truncate text-sm font-bold text-mist-50">{{ auth.displayName }}</span>
-            <span
-              v-if="auth.isBlocked"
-              class="rounded-full bg-ember-500/16 px-2 py-1 text-[0.62rem] font-bold uppercase tracking-[0.16em] text-ember-100"
+          <div class="inline-flex min-w-0 items-stretch overflow-hidden rounded-lg bg-[#303030]">
+            <div class="flex min-h-11 min-w-0 items-center gap-2 px-3 py-1.5">
+              <span class="block max-w-32 truncate text-sm font-bold text-mist-300"><span class="text-mist-300/45">@</span>{{ auth.displayName }}</span>
+              <span
+                v-if="auth.isBlocked"
+                class="rounded-full bg-ember-500/16 px-2 py-1 text-[0.62rem] font-bold uppercase tracking-[0.16em] text-ember-100"
+              >
+                Blocked
+              </span>
+            </div>
+            <button
+              type="button"
+              class="grid h-11 w-11 shrink-0 place-items-center border-l border-mist-50/10 text-mist-300 transition hover:bg-[#353535] hover:text-ember-100"
+              title="Sign out"
+              aria-label="Sign out"
+              @click="logout"
             >
-              Blocked
-            </span>
+              <LogOut class="h-4 w-4" />
+            </button>
           </div>
-          <button
-            type="button"
-            class="grid h-11 w-11 place-items-center rounded-full border border-mist-50/10 bg-mist-50/6 text-mist-300 transition hover:border-ember-300/45 hover:bg-ember-300/10 hover:text-ember-100"
-            title="Sign out"
-            aria-label="Sign out"
-            @click="logout"
-          >
-            <LogOut class="h-4 w-4" />
-          </button>
         </template>
         <template v-else>
           <RouterLink
