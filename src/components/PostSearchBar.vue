@@ -40,6 +40,10 @@ type AutocompleteMode = 'tag' | 'keyword'
 type DateOperator = 'from' | 'to'
 type CaretPlacement = 'start' | 'end'
 
+interface PillCompletionOptions {
+  keepFocus?: boolean
+}
+
 interface ActiveToken {
   start: number
   end: number
@@ -269,9 +273,20 @@ function onSearchKeydown(event: KeyboardEvent) {
     return
   }
 
-  if (showAutocomplete.value && (event.key === 'Enter' || event.key === 'Tab')) {
+  if (event.key === 'Enter') {
+    event.preventDefault()
+    submitSearch()
+    return
+  }
+
+  if (showAutocomplete.value && event.key === 'Tab') {
     event.preventDefault()
     selectSuggestion(autocompleteSuggestions.value[activeSuggestionIndex.value])
+    return
+  }
+
+  if (event.key === 'Tab') {
+    event.preventDefault()
     return
   }
 
@@ -326,7 +341,13 @@ function onPillKeydown(pill: SemanticPill, event: KeyboardEvent) {
     return
   }
 
-  if (event.key === 'Enter' || event.key === 'Tab') {
+  if (event.key === 'Enter') {
+    event.preventDefault()
+    submitSearch(pill)
+    return
+  }
+
+  if (event.key === 'Tab') {
     event.preventDefault()
 
     if (pill.type === 'tag' && autocompleteSuggestions.value.length > 0) {
@@ -507,6 +528,15 @@ function removeLastPillBeforeSearch() {
   removeSemanticItem(lastItem)
 }
 
+function submitSearch(pill = activePill.value) {
+  if (pill) {
+    confirmOrEscapePill(pill, { keepFocus: false })
+  }
+
+  emit('search')
+  blurSearch()
+}
+
 function editLastPillBeforeSearch() {
   const lastItem = orderedSemanticItems.value[orderedSemanticItems.value.length - 1]
 
@@ -644,30 +674,33 @@ function createPill(
   }
 }
 
-function confirmOrEscapePill(pill: SemanticPill) {
+function confirmOrEscapePill(pill: SemanticPill, options: PillCompletionOptions = {}) {
   if (pill.type === 'tag') {
     const tag = findExactTag(pill.value)
 
     if (tag) {
-      confirmTagPill(pill, tag)
+      confirmTagPill(pill, tag, options)
       return
     }
 
-    escapePill(pill)
+    escapePill(pill, options)
     return
   }
 
   if (pill.type === 'date' && isValidDate(pill.value)) {
-    confirmDatePill(pill)
+    confirmDatePill(pill, options)
     return
   }
 
-  escapePill(pill)
+  escapePill(pill, options)
 }
 
-function escapePill(pill: SemanticPill) {
+function escapePill(pill: SemanticPill, options: PillCompletionOptions = {}) {
   deactivatePill(pill)
-  focusSearchAtStart()
+
+  if (options.keepFocus !== false) {
+    focusSearchAtStart()
+  }
 }
 
 function deactivatePill(pill: SemanticPill) {
@@ -676,7 +709,7 @@ function deactivatePill(pill: SemanticPill) {
   activePillId.value = null
 }
 
-function confirmTagPill(pill: SemanticPill, tag: TagResponse) {
+function confirmTagPill(pill: SemanticPill, tag: TagResponse, options: PillCompletionOptions = {}) {
   replaceDraftOrderItem(pill.id, {
     id: `order-tag-${tag.name}`,
     kind: 'tag',
@@ -685,10 +718,13 @@ function confirmTagPill(pill: SemanticPill, tag: TagResponse) {
   removeDraftPill(pill.id, false)
   emit('select-tag', tag)
   isAutocompleteDismissed.value = true
-  focusSearchAtStart()
+
+  if (options.keepFocus !== false) {
+    focusSearchAtStart()
+  }
 }
 
-function confirmDatePill(pill: SemanticPill) {
+function confirmDatePill(pill: SemanticPill, options: PillCompletionOptions = {}) {
   if (pill.type !== 'date' || !pill.operator) {
     return
   }
@@ -701,8 +737,11 @@ function confirmDatePill(pill: SemanticPill) {
   })
   removeDraftPill(pill.id, false)
   isAutocompleteDismissed.value = true
-  emit('search')
-  focusSearchAtStart()
+
+  if (options.keepFocus !== false) {
+    emit('search')
+    focusSearchAtStart()
+  }
 }
 
 function findExactTag(value: string) {
@@ -1087,6 +1126,8 @@ function semanticItemTitle(item: RenderSemanticItem) {
         :value="dateInputValue"
         class="min-h-11 rounded-lg border border-mist-50/10 bg-ink-950/60 px-3 text-sm font-semibold text-mist-50 outline-none focus-visible:outline-none"
         @input="selectDate"
+        @keydown.enter.prevent="submitSearch()"
+        @keydown.tab.prevent
         @keydown.escape.prevent="blurSearch"
       />
     </div>
