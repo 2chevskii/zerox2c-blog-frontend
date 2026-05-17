@@ -49,16 +49,6 @@ defineExpose({
 </script>
 
 <template>
-  <Teleport to="body">
-    <button
-      v-if="isSearchFocused"
-      type="button"
-      class="fixed inset-0 z-20 cursor-default border-0 bg-transparent p-0 focus-visible:outline-none"
-      aria-label="Close search"
-      @mousedown.prevent="blurSearch"
-    />
-  </Teleport>
-
   <div
     ref="rootElement"
     class="relative mx-auto w-full"

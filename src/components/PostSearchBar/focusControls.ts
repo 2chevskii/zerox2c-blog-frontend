@@ -1,5 +1,5 @@
 import { nextTick, watch, type Ref } from 'vue'
-import { useActiveElement, useFocusWithin } from '@vueuse/core'
+import { onClickOutside, useActiveElement, useFocusWithin } from '@vueuse/core'
 import type { CaretPlacement } from './types'
 
 const CARET_PRESERVING_KEYS = ['ArrowDown', 'ArrowUp', 'Enter', 'Escape', 'Tab']
@@ -40,6 +40,12 @@ export function useSearchFocusControls({
     searchInput.value?.blur()
     isAutocompleteDismissed.value = true
   }
+
+  onClickOutside(rootElement, () => {
+    if (isSearchFocused.value) {
+      blurSearch()
+    }
+  })
 
   function updateCaret(event: Event) {
     const input = event.target as HTMLInputElement
