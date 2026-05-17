@@ -325,105 +325,113 @@ function clamp(value: number, min: number, max: number) {
       </section>
 
       <section class="grid gap-5 lg:grid-cols-2">
-        <div class="grid content-start gap-3 rounded-xl bg-[#252525] p-5 shadow-[0_14px_36px_rgba(0,0,0,0.18)]">
+        <div class="grid h-[22rem] grid-rows-[auto_minmax(0,1fr)] gap-3 rounded-xl bg-[#252525] p-5 shadow-[0_14px_36px_rgba(0,0,0,0.18)]">
           <h2 class="inline-flex items-center gap-2 font-display text-2xl font-bold text-mist-50">
             <Eye class="h-5 w-5 text-brass-100" />
             Recently viewed
           </h2>
-          <RouterLink
-            v-for="post in profile.recentlyViewedPosts"
-            :key="post.id"
-            :to="postPath(post)"
-            class="rounded-lg bg-[#303030] p-3 transition hover:bg-[#353535]"
-          >
-            <span class="block text-sm font-bold text-mist-50">{{ post.title }}</span>
-            <span class="text-xs font-semibold text-mist-300">{{ formatShortDate(post.publishedAt) }}</span>
-          </RouterLink>
-          <p v-if="profile.recentlyViewedPosts.length === 0" class="text-sm font-semibold text-mist-300">
-            No recently viewed posts yet.
-          </p>
+          <div class="grid min-h-0 content-start gap-3 overflow-y-auto pr-1">
+            <RouterLink
+              v-for="post in profile.recentlyViewedPosts"
+              :key="post.id"
+              :to="postPath(post)"
+              class="rounded-lg bg-[#303030] p-3 transition hover:bg-[#353535]"
+            >
+              <span class="block text-sm font-bold text-mist-50">{{ post.title }}</span>
+              <span class="text-xs font-semibold text-mist-300">{{ formatShortDate(post.publishedAt) }}</span>
+            </RouterLink>
+            <p v-if="profile.recentlyViewedPosts.length === 0" class="text-sm font-semibold text-mist-300">
+              No recently viewed posts yet.
+            </p>
+          </div>
         </div>
 
-        <div class="grid content-start gap-3 rounded-xl bg-[#252525] p-5 shadow-[0_14px_36px_rgba(0,0,0,0.18)]">
+        <div class="grid h-[22rem] grid-rows-[auto_minmax(0,1fr)] gap-3 rounded-xl bg-[#252525] p-5 shadow-[0_14px_36px_rgba(0,0,0,0.18)]">
           <h2 class="inline-flex items-center gap-2 font-display text-2xl font-bold text-mist-50">
             <Heart class="h-5 w-5 text-brass-100" />
             Liked posts
           </h2>
-          <RouterLink
-            v-for="post in profile.likedPosts"
-            :key="post.id"
-            :to="postPath(post)"
-            class="rounded-lg bg-[#303030] p-3 transition hover:bg-[#353535]"
-          >
-            <span class="block text-sm font-bold text-mist-50">{{ post.title }}</span>
-            <span class="text-xs font-semibold text-mist-300">{{ formatShortDate(post.publishedAt) }}</span>
-          </RouterLink>
-          <p v-if="profile.likedPosts.length === 0" class="text-sm font-semibold text-mist-300">
-            No liked posts yet.
-          </p>
+          <div class="grid min-h-0 content-start gap-3 overflow-y-auto pr-1">
+            <RouterLink
+              v-for="post in profile.likedPosts"
+              :key="post.id"
+              :to="postPath(post)"
+              class="rounded-lg bg-[#303030] p-3 transition hover:bg-[#353535]"
+            >
+              <span class="block text-sm font-bold text-mist-50">{{ post.title }}</span>
+              <span class="text-xs font-semibold text-mist-300">{{ formatShortDate(post.publishedAt) }}</span>
+            </RouterLink>
+            <p v-if="profile.likedPosts.length === 0" class="text-sm font-semibold text-mist-300">
+              No liked posts yet.
+            </p>
+          </div>
         </div>
       </section>
 
       <section class="grid gap-5 lg:grid-cols-2">
-        <div class="grid content-start gap-3 rounded-xl bg-[#252525] p-5 shadow-[0_14px_36px_rgba(0,0,0,0.18)]">
+        <div class="grid h-[22rem] grid-rows-[auto_minmax(0,1fr)] gap-3 rounded-xl bg-[#252525] p-5 shadow-[0_14px_36px_rgba(0,0,0,0.18)]">
           <h2 class="inline-flex items-center gap-2 font-display text-2xl font-bold text-mist-50">
             <MessageCircle class="h-5 w-5 text-brass-100" />
             Your comments
           </h2>
-          <article
-            v-for="comment in profile.comments"
-            :key="comment.id"
-            class="grid gap-2 rounded-lg bg-[#303030] p-3"
-          >
-            <RouterLink :to="postPath(comment)" class="text-sm font-bold text-brass-100 hover:text-mist-50">
-              {{ comment.postTitle }}
-            </RouterLink>
-            <p class="line-clamp-3 whitespace-pre-wrap break-words text-sm leading-6 text-mist-200">
-              {{ comment.body }}
+          <div class="grid min-h-0 content-start gap-3 overflow-y-auto pr-1">
+            <article
+              v-for="comment in profile.comments"
+              :key="comment.id"
+              class="grid gap-2 rounded-lg bg-[#303030] p-3"
+            >
+              <RouterLink :to="postPath(comment)" class="text-sm font-bold text-brass-100 hover:text-mist-50">
+                {{ comment.postTitle }}
+              </RouterLink>
+              <p class="line-clamp-3 whitespace-pre-wrap break-words text-sm leading-6 text-mist-200">
+                {{ comment.body }}
+              </p>
+              <span class="text-xs font-semibold text-mist-300">{{ formatShortDate(comment.createdAt) }}</span>
+            </article>
+            <p v-if="profile.comments.length === 0" class="text-sm font-semibold text-mist-300">
+              No comments yet.
             </p>
-            <span class="text-xs font-semibold text-mist-300">{{ formatShortDate(comment.createdAt) }}</span>
-          </article>
-          <p v-if="profile.comments.length === 0" class="text-sm font-semibold text-mist-300">
-            No comments yet.
-          </p>
+          </div>
         </div>
 
-        <div class="grid content-start gap-3 rounded-xl bg-[#252525] p-5 shadow-[0_14px_36px_rgba(0,0,0,0.18)]">
+        <div class="grid h-[22rem] grid-rows-[auto_minmax(0,1fr)] gap-3 rounded-xl bg-[#252525] p-5 shadow-[0_14px_36px_rgba(0,0,0,0.18)]">
           <h2 class="inline-flex items-center gap-2 font-display text-2xl font-bold text-mist-50">
             <Send class="h-5 w-5 text-brass-100" />
             Replies
           </h2>
-          <article
-            v-for="reply in profile.replies"
-            :key="reply.id"
-            class="grid gap-2 rounded-lg bg-[#303030] p-3"
-          >
-            <div class="flex flex-wrap items-center justify-between gap-2">
-              <RouterLink :to="postPath(reply)" class="text-sm font-bold text-brass-100 hover:text-mist-50">
-                {{ reply.postTitle }}
-              </RouterLink>
-              <button
-                type="button"
-                class="inline-flex min-h-8 items-center gap-1.5 rounded-md px-2 py-1 text-xs font-bold transition"
-                :class="reply.isSeen ? 'bg-mist-50/6 text-mist-300' : 'bg-brass-200/16 text-brass-100 hover:bg-brass-200/22'"
-                :disabled="reply.isSeen"
-                @click="markSeen(reply)"
-              >
-                <Check class="h-3.5 w-3.5" />
-                {{ reply.isSeen ? 'Seen' : 'Mark seen' }}
-              </button>
-            </div>
-            <p class="text-xs font-semibold text-mist-300">
-              <span class="text-mist-300/55">@</span>{{ reply.authorUsername }} replied
+          <div class="grid min-h-0 content-start gap-3 overflow-y-auto pr-1">
+            <article
+              v-for="reply in profile.replies"
+              :key="reply.id"
+              class="grid gap-2 rounded-lg bg-[#303030] p-3"
+            >
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <RouterLink :to="postPath(reply)" class="text-sm font-bold text-brass-100 hover:text-mist-50">
+                  {{ reply.postTitle }}
+                </RouterLink>
+                <button
+                  type="button"
+                  class="inline-flex min-h-8 items-center gap-1.5 rounded-md px-2 py-1 text-xs font-bold transition"
+                  :class="reply.isSeen ? 'bg-mist-50/6 text-mist-300' : 'bg-brass-200/16 text-brass-100 hover:bg-brass-200/22'"
+                  :disabled="reply.isSeen"
+                  @click="markSeen(reply)"
+                >
+                  <Check class="h-3.5 w-3.5" />
+                  {{ reply.isSeen ? 'Seen' : 'Mark seen' }}
+                </button>
+              </div>
+              <p class="text-xs font-semibold text-mist-300">
+                <span class="text-mist-300/55">@</span>{{ reply.authorUsername }} replied
+              </p>
+              <p class="line-clamp-3 whitespace-pre-wrap break-words text-sm leading-6 text-mist-200">
+                {{ reply.body }}
+              </p>
+              <span class="text-xs font-semibold text-mist-300">{{ formatShortDate(reply.createdAt) }}</span>
+            </article>
+            <p v-if="profile.replies.length === 0" class="text-sm font-semibold text-mist-300">
+              No replies yet.
             </p>
-            <p class="line-clamp-3 whitespace-pre-wrap break-words text-sm leading-6 text-mist-200">
-              {{ reply.body }}
-            </p>
-            <span class="text-xs font-semibold text-mist-300">{{ formatShortDate(reply.createdAt) }}</span>
-          </article>
-          <p v-if="profile.replies.length === 0" class="text-sm font-semibold text-mist-300">
-            No replies yet.
-          </p>
+          </div>
         </div>
       </section>
     </template>
