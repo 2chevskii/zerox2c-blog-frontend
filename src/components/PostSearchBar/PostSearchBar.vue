@@ -45,7 +45,7 @@ const {
     <button
       v-if="isSearchFocused"
       type="button"
-      class="fixed inset-0 z-30 cursor-default border-0 bg-ink-950/5 p-0 backdrop-blur-[4px] focus-visible:outline-none"
+      class="fixed inset-0 z-30 cursor-default border-0 bg-transparent p-0 focus-visible:outline-none"
       aria-label="Close search"
       @mousedown.prevent="blurSearch"
     />
@@ -58,8 +58,11 @@ const {
   >
     <label class="sr-only" for="post-search">Search posts</label>
     <div
-      class="glass-panel relative z-50 flex w-full flex-wrap items-center gap-1.5 rounded-xl pl-12 pr-3 transition duration-200"
-      :class="compact ? 'min-h-11 py-1.5' : 'min-h-13 py-2.5'"
+      class="relative z-50 flex w-full flex-wrap items-center gap-1.5 rounded-xl border bg-[#252525]/92 pl-12 pr-3 shadow-[0_12px_32px_rgba(0,0,0,0.2)] backdrop-blur-[18px] transition duration-200"
+      :class="[
+        compact ? 'min-h-11 py-1.5' : 'min-h-13 py-2.5',
+        isSearchFocused ? 'border-brass-200/40' : 'border-mist-50/0',
+      ]"
     >
       <Search
         class="pointer-events-none absolute left-4 h-5 w-5 text-brass-100/80"

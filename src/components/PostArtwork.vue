@@ -43,7 +43,8 @@ const loadingMode = computed(() => props.priority ? 'eager' : 'lazy')
     />
     <div
       v-else
-      class="grid h-full w-full place-items-center border border-mist-50/10 bg-[linear-gradient(135deg,#11181c,#0b0f12)]"
+      class="grid h-full w-full place-items-center bg-[linear-gradient(135deg,#11181c,#0b0f12)]"
+      :class="compact ? '' : 'border border-mist-50/10'"
     >
       <Code2 class="h-10 w-10 text-brass-100/80" :stroke-width="1.5" />
     </div>
