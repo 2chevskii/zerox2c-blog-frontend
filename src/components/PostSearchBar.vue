@@ -37,6 +37,7 @@ let nextPillId = 1
 
 type AutocompleteMode = 'tag' | 'keyword'
 type DateOperator = 'from' | 'to'
+type CaretPlacement = 'start' | 'end'
 
 interface ActiveToken {
   start: number
@@ -309,6 +310,19 @@ function onPillKeydown(pill: SemanticPill, event: KeyboardEvent) {
   const input = event.target as HTMLInputElement
   const selectionStart = input.selectionStart ?? 0
   const selectionEnd = input.selectionEnd ?? selectionStart
+  const valueEnd = input.value.length
+
+  if (event.key === 'ArrowLeft' && selectionStart === 0 && selectionEnd === 0) {
+    event.preventDefault()
+    focusAdjacentPill(pill, 'previous')
+    return
+  }
+
+  if (event.key === 'ArrowRight' && selectionStart === valueEnd && selectionEnd === valueEnd) {
+    event.preventDefault()
+    focusAdjacentPill(pill, 'next')
+    return
+  }
 
   if (event.key === 'Backspace' && selectionStart === 0 && selectionEnd === 0) {
     event.preventDefault()
@@ -355,9 +369,9 @@ function activatePill(pill: SemanticPill) {
   isAutocompleteDismissed.value = false
 }
 
-function editPill(pill: SemanticPill) {
+function editPill(pill: SemanticPill, caretPlacement: CaretPlacement = 'end') {
   activatePill(pill)
-  void nextTick(() => focusPillInput(pill.id))
+  void nextTick(() => focusPillInput(pill.id, caretPlacement))
 }
 
 function onFocusIn() {
@@ -506,6 +520,30 @@ function editLastPillBeforeSearch() {
   }
 }
 
+function focusAdjacentPill(pill: SemanticPill, direction: 'previous' | 'next') {
+  const currentIndex = orderedSemanticItems.value.findIndex(
+    (item) => item.kind === 'draft' && item.pill.id === pill.id,
+  )
+  const targetIndex = direction === 'previous' ? currentIndex - 1 : currentIndex + 1
+  const targetItem = orderedSemanticItems.value[targetIndex]
+
+  if (currentIndex === -1) {
+    return
+  }
+
+  if (!targetItem) {
+    if (direction === 'next') {
+      deactivatePill(pill)
+      focusSearchAtStart()
+    }
+
+    return
+  }
+
+  deactivatePill(pill)
+  editSemanticItem(targetItem, direction === 'previous' ? 'end' : 'start')
+}
+
 async function refreshAutocomplete() {
   const mode = activeAutocompleteMode.value
 
@@ -633,10 +671,14 @@ function confirmOrEscapePill(pill: SemanticPill) {
 }
 
 function escapePill(pill: SemanticPill) {
+  deactivatePill(pill)
+  focusSearchAtStart()
+}
+
+function deactivatePill(pill: SemanticPill) {
   pill.isEditing = false
   pill.isInvalid = !isPillValid(pill)
   activePillId.value = null
-  focusSearchAtStart()
 }
 
 function confirmTagPill(pill: SemanticPill, tag: TagResponse) {
@@ -741,21 +783,24 @@ function removeSemanticItem(item: RenderSemanticItem) {
   removeTag(item.tag.name)
 }
 
-function editSemanticItem(item: RenderSemanticItem) {
+function editSemanticItem(item: RenderSemanticItem, caretPlacement: CaretPlacement = 'end') {
   if (item.kind === 'draft') {
-    editPill(item.pill)
+    editPill(item.pill, caretPlacement)
     return
   }
 
   if (item.kind === 'date') {
-    convertDateFilterToDraft(item)
+    convertDateFilterToDraft(item, caretPlacement)
     return
   }
 
-  convertTagToDraft(item)
+  convertTagToDraft(item, caretPlacement)
 }
 
-function convertTagToDraft(item: Extract<RenderSemanticItem, { kind: 'tag' }>) {
+function convertTagToDraft(
+  item: Extract<RenderSemanticItem, { kind: 'tag' }>,
+  caretPlacement: CaretPlacement = 'end',
+) {
   const pill = createPill({ type: 'tag', value: item.tag.name })
 
   replaceOrderAtIndex(item.orderIndex, { id: `order-${pill.id}`, kind: 'draft', draftId: pill.id })
@@ -763,10 +808,13 @@ function convertTagToDraft(item: Extract<RenderSemanticItem, { kind: 'tag' }>) {
   activePillId.value = pill.id
   emit('remove-tag', item.tag.name)
   isAutocompleteDismissed.value = false
-  void nextTick(() => focusPillInput(pill.id))
+  void nextTick(() => focusPillInput(pill.id, caretPlacement))
 }
 
-function convertDateFilterToDraft(item: Extract<RenderSemanticItem, { kind: 'date' }>) {
+function convertDateFilterToDraft(
+  item: Extract<RenderSemanticItem, { kind: 'date' }>,
+  caretPlacement: CaretPlacement = 'end',
+) {
   const pill = createPill({
     type: 'date',
     operator: item.dateFilter.operator,
@@ -781,7 +829,7 @@ function convertDateFilterToDraft(item: Extract<RenderSemanticItem, { kind: 'dat
   activePillId.value = pill.id
   emit('search')
   isAutocompleteDismissed.value = false
-  void nextTick(() => focusPillInput(pill.id))
+  void nextTick(() => focusPillInput(pill.id, caretPlacement))
 }
 
 function replaceOrderAtIndex(index: number, replacement: SemanticTokenOrderItem) {
@@ -852,10 +900,12 @@ function focusSearchAtEnd() {
   })
 }
 
-function focusPillInput(id: string) {
+function focusPillInput(id: string, caretPlacement: CaretPlacement = 'end') {
   const pillInput = rootElement.value?.querySelector<HTMLInputElement>(`[data-pill-input="${id}"]`)
+  const caretPosition = caretPlacement === 'start' ? 0 : (pillInput?.value.length ?? 0)
+
   pillInput?.focus()
-  pillInput?.setSelectionRange(pillInput.value.length, pillInput.value.length)
+  pillInput?.setSelectionRange(caretPosition, caretPosition)
 }
 
 function pillPrefix(pill: SemanticPill) {
@@ -987,6 +1037,13 @@ function semanticItemTitle(item: RenderSemanticItem) {
         @keyup="updateCaret"
         @keydown="onSearchKeydown"
       />
+
+      <span
+        class="hidden min-h-6 items-center rounded-md bg-mist-50/10 px-2 py-0.5 font-mono text-[0.65rem] font-semibold text-mist-300/80 sm:inline-flex"
+        aria-hidden="true"
+      >
+        {{ isSearchFocused ? 'ESC' : 'CTRL+K' }}
+      </span>
 
       <span v-if="isLoading" class="hidden rounded-lg border border-mist-50/10 bg-mist-50/6 px-3 py-1 text-[0.65rem] font-bold uppercase tracking-[0.18em] text-mist-300 sm:inline-flex">
         Syncing
