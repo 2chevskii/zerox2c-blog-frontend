@@ -53,14 +53,18 @@ const {
 
   <div
     ref="rootElement"
-    class="relative mx-auto w-full max-w-3xl"
-    :class="isSearchFocused ? 'z-50' : ''"
+    class="relative mx-auto w-full"
+    :class="[compact ? 'max-w-[34rem]' : 'max-w-3xl', isSearchFocused ? 'z-50' : '']"
   >
     <label class="sr-only" for="post-search">Search posts</label>
     <div
-      class="glass-panel relative z-50 flex min-h-13 w-full flex-wrap items-center gap-1.5 rounded-xl py-2.5 pl-12 pr-3 transition duration-200"
+      class="glass-panel relative z-50 flex w-full flex-wrap items-center gap-1.5 rounded-xl pl-12 pr-3 transition duration-200"
+      :class="compact ? 'min-h-11 py-1.5' : 'min-h-13 py-2.5'"
     >
-      <Search class="pointer-events-none absolute left-4 top-4 h-5 w-5 text-brass-100/80" />
+      <Search
+        class="pointer-events-none absolute left-4 h-5 w-5 text-brass-100/80"
+        :class="compact ? 'top-3' : 'top-4'"
+      />
 
       <template v-for="item in orderedSemanticItems" :key="item.key">
         <div

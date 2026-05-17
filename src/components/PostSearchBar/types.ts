@@ -10,6 +10,7 @@ export interface PostSearchBarProps {
   selectedTags: TagResponse[]
   availableTags: TagResponse[]
   isLoading?: boolean
+  compact?: boolean
 }
 
 export interface PostSearchBarEmits {

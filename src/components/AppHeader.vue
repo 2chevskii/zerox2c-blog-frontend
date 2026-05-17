@@ -2,13 +2,33 @@
 import { computed } from "vue";
 import { ArrowLeft, LogIn, LogOut, Settings, UserPlus } from "@lucide/vue";
 import { useRoute, useRouter } from "vue-router";
+import { storeToRefs } from "pinia";
+import { useDebounceFn } from "@vueuse/core";
 import brandBagUrl from "@/assets/brand-bag.svg";
+import PostSearchBar from "@/components/PostSearchBar";
 import { useAuthStore } from "@/stores/auth";
+import { usePostsStore } from "@/stores/posts";
+import type { PostSearchDateFilter, TagResponse } from "@/types/api";
 
 const auth = useAuthStore();
+const postsStore = usePostsStore();
 const route = useRoute();
 const router = useRouter();
 const showBackButton = computed(() => route.name === "post" || route.name === "profile");
+const showDesktopSearch = computed(() => route.name === "home");
+const {
+  search,
+  selectedTags,
+  availableTags,
+  isLoadingList,
+  isLoadingMore,
+} = storeToRefs(postsStore);
+
+const searchModel = computed({
+  get: () => search.value,
+  set: (value: string) => postsStore.setSearch(value),
+});
+const debouncedSearch = useDebounceFn(() => postsStore.fetchPosts(true), 250);
 
 async function goBack() {
   if (window.history.length > 1) {
@@ -22,6 +42,21 @@ async function goBack() {
 async function logout() {
   auth.clearSession();
   await router.push({ name: "home" });
+}
+
+function selectTag(tag: TagResponse) {
+  postsStore.addTag(tag);
+  void postsStore.fetchPosts(true);
+}
+
+function removeTag(name: string) {
+  postsStore.removeTag(name);
+  void postsStore.fetchPosts(true);
+}
+
+function updateDateFilters(dateFilters: PostSearchDateFilter[]) {
+  postsStore.setDateFilters(dateFilters);
+  void postsStore.fetchPosts(true);
 }
 </script>
 
@@ -57,6 +92,23 @@ async function logout() {
             2CHEVSKII BLOG
           </span>
         </RouterLink>
+      </div>
+
+      <div
+        v-if="showDesktopSearch"
+        class="hidden min-w-0 flex-1 px-2 lg:block"
+      >
+        <PostSearchBar
+          v-model="searchModel"
+          compact
+          :selected-tags="selectedTags"
+          :available-tags="availableTags"
+          :is-loading="isLoadingList || isLoadingMore"
+          @search="debouncedSearch"
+          @select-tag="selectTag"
+          @remove-tag="removeTag"
+          @date-filters-change="updateDateFilters"
+        />
       </div>
 
       <nav
