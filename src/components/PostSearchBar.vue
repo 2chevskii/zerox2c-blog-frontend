@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { Calendar, Hash, Search, X } from '@lucide/vue'
+import { onKeyStroke } from '@vueuse/core'
 import {
   getSearchKeywordSuggestions,
   getSearchTagSuggestions,
@@ -232,16 +233,10 @@ watch(
   { immediate: true },
 )
 
+onKeyStroke('k', onGlobalSearchShortcut)
+
 watch(autocompleteSuggestions, () => {
   activeSuggestionIndex.value = 0
-})
-
-onMounted(() => {
-  window.addEventListener('keydown', onGlobalKeydown)
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener('keydown', onGlobalKeydown)
 })
 
 function updateSearch(value: string) {
@@ -389,8 +384,8 @@ function onFocusOut(event: FocusEvent) {
   isAutocompleteDismissed.value = true
 }
 
-function onGlobalKeydown(event: KeyboardEvent) {
-  if (!event.ctrlKey || event.key.toLowerCase() !== 'k') {
+function onGlobalSearchShortcut(event: KeyboardEvent) {
+  if (!event.ctrlKey) {
     return
   }
 
