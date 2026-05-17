@@ -1,10 +1,23 @@
 <script setup lang="ts">
-import { LogIn, LogOut, Settings, UserPlus } from "@lucide/vue";
-import { useRouter } from "vue-router";
+import { computed } from "vue";
+import { ArrowLeft, LogIn, LogOut, Settings, UserPlus } from "@lucide/vue";
+import { useRoute, useRouter } from "vue-router";
+import brandBagUrl from "@/assets/brand-bag.svg";
 import { useAuthStore } from "@/stores/auth";
 
 const auth = useAuthStore();
+const route = useRoute();
 const router = useRouter();
+const showBackButton = computed(() => route.name === "post" || route.name === "profile");
+
+async function goBack() {
+  if (window.history.length > 1) {
+    router.back();
+    return;
+  }
+
+  await router.push({ name: "home" });
+}
 
 async function logout() {
   auth.clearSession();
@@ -15,8 +28,35 @@ async function logout() {
 <template>
   <header class="sticky top-0 z-50 h-[5.25rem] px-4 pb-0 pt-4 sm:px-6 lg:px-8">
     <div
-      class="mx-auto flex min-h-[4.25rem] w-full max-w-7xl justify-end rounded-xl bg-[#252525]/92 px-3 py-3 shadow-[0_14px_36px_rgba(0,0,0,0.18)] backdrop-blur-[36px] sm:px-4"
+      class="mx-auto flex min-h-[4.25rem] w-full max-w-7xl items-center justify-between gap-3 rounded-xl bg-[#252525]/92 px-3 py-3 shadow-[0_14px_36px_rgba(0,0,0,0.18)] backdrop-blur-[36px] sm:px-4"
     >
+      <div class="flex min-w-0 items-center gap-2">
+        <button
+          v-if="showBackButton"
+          type="button"
+          class="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-[#303030] text-mist-300 transition hover:bg-[#353535] hover:text-ember-100"
+          title="Go back"
+          aria-label="Go back"
+          @click="goBack"
+        >
+          <ArrowLeft class="h-4 w-4" />
+        </button>
+        <RouterLink
+          to="/"
+          class="inline-flex min-w-0 items-center gap-2 rounded-lg px-1.5 py-1 text-mist-50 transition hover:text-brass-100"
+          aria-label="2CHEVSKII BLOG home"
+        >
+          <img
+            :src="brandBagUrl"
+            alt=""
+            class="h-9 w-9 shrink-0 rounded-md"
+          >
+          <span class="truncate font-display text-lg font-bold leading-none sm:text-xl">
+            2CHEVSKII BLOG
+          </span>
+        </RouterLink>
+      </div>
+
       <nav
         class="flex shrink-0 items-center gap-2"
         aria-label="Account navigation"

@@ -2,7 +2,7 @@
 import { computed, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { RouterLink, useRoute } from 'vue-router'
-import { ArrowLeft, CalendarDays, Clock, ThumbsDown, ThumbsUp } from '@lucide/vue'
+import { CalendarDays, Clock, ThumbsDown, ThumbsUp } from '@lucide/vue'
 import { useTitle } from '@vueuse/core'
 import ErrorNotice from '@/components/ErrorNotice.vue'
 import LoadingState from '@/components/LoadingState.vue'
@@ -92,14 +92,6 @@ function updateReaction(reaction: PostReactionType) {
 
 <template>
   <main class="relative mx-auto grid max-w-6xl gap-7 px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
-    <RouterLink
-      to="/"
-      class="inline-flex min-h-11 w-fit items-center gap-2 rounded-xl border border-mist-50/10 bg-mist-50/6 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-mist-100 transition hover:border-brass-200/45 hover:bg-brass-200/10 hover:text-brass-100"
-    >
-      <ArrowLeft class="h-4 w-4" />
-      Back to notes
-    </RouterLink>
-
     <LoadingState v-if="isLoadingPost" />
     <ErrorNotice v-else-if="postError" :message="postError" />
 
