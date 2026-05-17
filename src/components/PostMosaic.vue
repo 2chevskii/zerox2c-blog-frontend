@@ -8,7 +8,7 @@ defineProps<{
 </script>
 
 <template>
-  <div class="grid gap-8">
+  <div class="mx-auto grid w-full max-w-5xl gap-5">
     <PostCard
       v-for="post in posts"
       :key="post.id"

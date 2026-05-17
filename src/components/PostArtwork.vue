@@ -7,10 +7,12 @@ const props = withDefaults(defineProps<{
   imageId: string | null
   title: string
   large?: boolean
+  compact?: boolean
   square?: boolean
   priority?: boolean
 }>(), {
   large: false,
+  compact: false,
   square: false,
   priority: false,
 })
@@ -19,6 +21,10 @@ const src = computed(() => imageUrl(props.imageId))
 const aspectClass = computed(() => {
   if (props.square) {
     return 'aspect-square'
+  }
+
+  if (props.compact) {
+    return 'aspect-[3/1]'
   }
 
   return props.large ? 'aspect-[16/9]' : 'aspect-[5/3]'

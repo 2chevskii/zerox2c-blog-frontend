@@ -63,7 +63,7 @@ function updateDateFilters(dateFilters: PostSearchDateFilter[]) {
 <template>
   <header class="sticky top-0 z-50 h-[5.25rem] px-4 pb-0 pt-4 sm:px-6 lg:px-8">
     <div
-      class="mx-auto flex min-h-[4.25rem] w-full max-w-7xl items-center justify-between gap-3 rounded-xl bg-[#252525]/92 px-3 py-3 shadow-[0_14px_36px_rgba(0,0,0,0.18)] backdrop-blur-[36px] sm:px-4"
+      class="mx-auto flex min-h-[4.25rem] w-full max-w-5xl items-center justify-between gap-3 rounded-xl bg-[#252525]/92 px-3 py-3 shadow-[0_14px_36px_rgba(0,0,0,0.18)] backdrop-blur-[36px] sm:px-4"
     >
       <div class="flex min-w-0 items-center gap-2">
         <Transition name="header-back">
