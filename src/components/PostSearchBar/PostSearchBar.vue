@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Calendar, Hash, Search, X } from '@lucide/vue'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { usePostSearchBar } from './usePostSearchBar'
 import type { PostSearchBarEmits, PostSearchBarProps } from './types'
 
@@ -38,6 +38,14 @@ const {
   focusSearchAtStart,
   submitSearch,
 } = usePostSearchBar(props, emit, { rootElement, searchInput })
+
+watch(isSearchFocused, (focused) => {
+  emit('focus-change', focused)
+})
+
+defineExpose({
+  blurSearch,
+})
 </script>
 
 <template>
@@ -45,7 +53,7 @@ const {
     <button
       v-if="isSearchFocused"
       type="button"
-      class="fixed inset-0 z-30 cursor-default border-0 bg-transparent p-0 focus-visible:outline-none"
+      class="fixed inset-0 z-20 cursor-default border-0 bg-transparent p-0 focus-visible:outline-none"
       aria-label="Close search"
       @mousedown.prevent="blurSearch"
     />

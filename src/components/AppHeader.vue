@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { ArrowLeft, LogIn, LogOut, Settings, UserPlus } from "@lucide/vue";
 import { useRoute, useRouter } from "vue-router";
 import { storeToRefs } from "pinia";
 import { useDebounceFn } from "@vueuse/core";
 import brandBagUrl from "@/assets/brand-bag.svg";
+import ErrorNotice from "@/components/ErrorNotice.vue";
+import PostMosaic from "@/components/PostMosaic.vue";
 import PostSearchBar from "@/components/PostSearchBar";
 import { useAuthStore } from "@/stores/auth";
 import { usePostsStore } from "@/stores/posts";
@@ -15,11 +17,17 @@ const postsStore = usePostsStore();
 const route = useRoute();
 const router = useRouter();
 const showBackButton = computed(() => route.name === "post" || route.name === "profile");
-const showDesktopSearch = computed(() => route.name === "home");
+const isHomeRoute = computed(() => route.name === "home");
+const headerSearch = ref<{ blurSearch: () => void } | null>(null);
+const isHeaderSearchFocused = ref(false);
+const areDetachedResultsOpen = ref(false);
 const {
+  posts,
   search,
   selectedTags,
+  hasActiveListFilters,
   availableTags,
+  listError,
   isLoadingList,
   isLoadingMore,
 } = storeToRefs(postsStore);
@@ -28,7 +36,20 @@ const searchModel = computed({
   get: () => search.value,
   set: (value: string) => postsStore.setSearch(value),
 });
-const debouncedSearch = useDebounceFn(() => postsStore.fetchPosts(true), 250);
+const debouncedSearch = useDebounceFn(searchFromHeader, 250);
+const showDetachedSearchResults = computed(() =>
+  !isHomeRoute.value &&
+  (isHeaderSearchFocused.value || areDetachedResultsOpen.value) &&
+  (hasActiveListFilters.value || isLoadingList.value || Boolean(listError.value)),
+);
+
+onMounted(() => {
+  void postsStore.fetchTags();
+});
+
+watch(() => route.name, () => {
+  areDetachedResultsOpen.value = false;
+});
 
 async function goBack() {
   if (window.history.length > 1) {
@@ -46,16 +67,38 @@ async function logout() {
 
 function selectTag(tag: TagResponse) {
   postsStore.addTag(tag);
+  areDetachedResultsOpen.value = true;
   void postsStore.fetchPosts(true);
 }
 
 function removeTag(name: string) {
   postsStore.removeTag(name);
+  areDetachedResultsOpen.value = true;
   void postsStore.fetchPosts(true);
 }
 
 function updateDateFilters(dateFilters: PostSearchDateFilter[]) {
   postsStore.setDateFilters(dateFilters);
+  areDetachedResultsOpen.value = true;
+  void postsStore.fetchPosts(true);
+}
+
+function closeDetachedSearchResults() {
+  headerSearch.value?.blurSearch();
+  isHeaderSearchFocused.value = false;
+  areDetachedResultsOpen.value = false;
+}
+
+function handleDetachedResultsClick(event: MouseEvent) {
+  const target = event.target;
+
+  if (target instanceof HTMLElement && target.closest('a[href]')) {
+    closeDetachedSearchResults();
+  }
+}
+
+function searchFromHeader() {
+  areDetachedResultsOpen.value = true;
   void postsStore.fetchPosts(true);
 }
 </script>
@@ -95,10 +138,10 @@ function updateDateFilters(dateFilters: PostSearchDateFilter[]) {
       </div>
 
       <div
-        v-if="showDesktopSearch"
         class="hidden min-w-0 flex-1 px-2 lg:block"
       >
         <PostSearchBar
+          ref="headerSearch"
           v-model="searchModel"
           compact
           :selected-tags="selectedTags"
@@ -108,6 +151,7 @@ function updateDateFilters(dateFilters: PostSearchDateFilter[]) {
           @select-tag="selectTag"
           @remove-tag="removeTag"
           @date-filters-change="updateDateFilters"
+          @focus-change="isHeaderSearchFocused = $event"
         />
       </div>
 
@@ -179,5 +223,46 @@ function updateDateFilters(dateFilters: PostSearchDateFilter[]) {
         </template>
       </nav>
     </div>
+
+    <Teleport to="body">
+      <div
+        v-if="showDetachedSearchResults"
+        class="fixed inset-x-0 bottom-0 top-[5.25rem] z-30"
+      >
+        <button
+          type="button"
+          class="absolute inset-0 cursor-default border-0 bg-[#1d1d1d]/32 p-0 backdrop-blur-[5px] backdrop-saturate-50 focus-visible:outline-none"
+          aria-label="Close search results"
+          @mousedown.prevent="closeDetachedSearchResults"
+        />
+
+        <section
+          class="pointer-events-none absolute inset-x-0 top-0 px-4 py-4 sm:px-6 lg:px-8"
+          aria-label="Search results"
+        >
+          <div
+            class="pointer-events-auto mx-auto max-h-[calc(100vh-7rem)] w-full max-w-5xl overflow-y-auto rounded-xl bg-[#252525]/94 p-4 shadow-[0_22px_70px_rgba(0,0,0,0.38)] backdrop-blur-[24px] sm:p-5"
+            @click="handleDetachedResultsClick"
+          >
+            <ErrorNotice v-if="listError" :message="listError" />
+            <div v-else-if="isLoadingList" class="grid gap-3" role="status" aria-live="polite">
+              <span class="sr-only">Loading search results</span>
+              <div
+                v-for="index in 3"
+                :key="index"
+                class="h-32 animate-pulse rounded-xl bg-mist-50/8"
+              />
+            </div>
+            <div
+              v-else-if="posts.length === 0"
+              class="rounded-xl bg-ink-950/45 px-5 py-8 text-center text-sm font-semibold text-mist-300"
+            >
+              No matching posts.
+            </div>
+            <PostMosaic v-else :posts="posts" @select-tag="selectTag" />
+          </div>
+        </section>
+      </div>
+    </Teleport>
   </header>
 </template>

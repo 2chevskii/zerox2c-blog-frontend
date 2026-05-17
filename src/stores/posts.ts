@@ -51,6 +51,14 @@ export const usePostsStore = defineStore('posts', () => {
   let listRequestId = 0
 
   const selectedTagNames = computed(() => selectedTags.value.map((tag) => tag.name))
+  const hasActiveListFilters = computed(() =>
+    Boolean(
+      search.value.trim() ||
+      selectedTags.value.length > 0 ||
+      publishedFrom.value ||
+      publishedTo.value,
+    ),
+  )
 
   async function fetchPosts(reset = false) {
     const requestId = ++listRequestId
@@ -299,6 +307,7 @@ export const usePostsStore = defineStore('posts', () => {
     selectedPost,
     search,
     selectedTags,
+    hasActiveListFilters,
     availableTags,
     hasMore,
     listError,

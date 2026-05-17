@@ -19,6 +19,7 @@ export interface PostSearchBarEmits {
   'select-tag': [tag: TagResponse]
   'remove-tag': [name: string]
   'date-filters-change': [dateFilters: PostSearchDateFilter[]]
+  'focus-change': [focused: boolean]
 }
 
 export type PostSearchBarEmit = <Event extends keyof PostSearchBarEmits>(
