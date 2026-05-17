@@ -13,8 +13,8 @@ async function logout() {
 </script>
 
 <template>
-  <header class="sticky top-0 z-50 h-[5.75rem] px-4 py-3 sm:px-6 lg:px-8">
-    <div class="mx-auto flex w-full max-w-7xl justify-end rounded-xl bg-[#252525]/92 px-3 py-3 shadow-[0_14px_36px_rgba(0,0,0,0.18)] backdrop-blur-[36px] sm:px-4">
+  <header class="sticky top-0 z-50 h-[5.25rem] px-4 pb-0 pt-4 sm:px-6 lg:px-8">
+    <div class="mx-auto flex min-h-[4.25rem] w-full max-w-7xl justify-end rounded-xl bg-[#252525]/92 px-3 py-3 shadow-[0_14px_36px_rgba(0,0,0,0.18)] backdrop-blur-[36px] sm:px-4">
       <nav class="flex shrink-0 items-center gap-2" aria-label="Account navigation">
         <template v-if="auth.isAuthenticated">
           <div class="hidden min-w-0 items-center gap-2 rounded-full border border-mist-50/10 bg-mist-50/6 px-3 py-2 sm:flex">
