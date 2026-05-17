@@ -26,7 +26,7 @@ const subtitle = computed(() =>
     ? 'Register a reader account with username, email, and password.'
     : 'Use your username or email to continue.',
 )
-const alternateLink = computed(() => (isSignup.value ? '/login' : '/signup'))
+const alternateLink = computed(() => (isSignup.value ? '/signin' : '/signup'))
 const alternateText = computed(() => (isSignup.value ? 'Already have an account?' : 'Need an account?'))
 const alternateAction = computed(() => (isSignup.value ? 'Sign in' : 'Sign up'))
 
@@ -110,12 +110,9 @@ function isFormValid() {
 </script>
 
 <template>
-  <main class="mx-auto grid min-h-[calc(100vh-4.5rem)] w-full max-w-7xl content-center px-4 py-10 sm:px-6 lg:px-8">
+  <main class="mx-auto grid min-h-[calc(100svh-5.25rem)] w-full max-w-7xl content-center px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
     <section class="mx-auto grid w-full max-w-md gap-6 rounded-2xl border border-mist-50/10 bg-[#252525] p-5 shadow-[0_20px_70px_rgba(0,0,0,0.28)] sm:p-7">
       <div class="grid gap-3">
-        <div class="grid h-12 w-12 place-items-center rounded-xl border border-brass-200/25 bg-brass-200/10 font-display text-sm font-bold text-brass-100">
-          2C
-        </div>
         <div class="grid gap-2">
           <h1 class="font-display text-3xl font-bold leading-none text-mist-50">{{ title }}</h1>
           <p class="text-sm leading-6 text-mist-300">{{ subtitle }}</p>
@@ -212,7 +209,7 @@ function isFormValid() {
 
         <button
           type="submit"
-          class="mt-1 min-h-12 rounded-xl border border-brass-200/35 bg-brass-200/14 px-5 py-3 text-sm font-bold uppercase tracking-[0.16em] text-brass-100 transition hover:border-brass-200/60 hover:bg-brass-200/20 disabled:opacity-60"
+          class="mt-1 inline-flex min-h-12 items-center justify-center rounded-lg bg-[#303030] px-5 py-3 text-sm font-bold uppercase tracking-[0.16em] text-brass-100 transition hover:bg-[#353535] hover:text-mist-50 disabled:opacity-60"
           :disabled="loading"
         >
           {{ loading ? 'Please wait' : title }}

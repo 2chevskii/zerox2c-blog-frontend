@@ -39,7 +39,7 @@ async function logout() {
         </template>
         <template v-else>
           <RouterLink
-            to="/login"
+            to="/signin"
             class="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg bg-[#303030] px-2.5 py-1.5 text-[0.68rem] font-bold uppercase tracking-[0.16em] text-mist-200 transition hover:bg-[#353535] hover:text-brass-100 sm:px-3"
             title="Sign in"
             aria-label="Sign in"

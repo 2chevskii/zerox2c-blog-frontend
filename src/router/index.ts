@@ -16,8 +16,8 @@ export const router = createRouter({
       component: HomeView,
     },
     {
-      path: '/login',
-      name: 'login',
+      path: '/signin',
+      name: 'signin',
       component: AuthView,
       meta: { guestOnly: true },
     },
@@ -47,7 +47,7 @@ router.beforeEach((to) => {
   const auth = useAuthStore()
 
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
-    return { name: 'login', query: { redirect: to.fullPath } }
+    return { name: 'signin', query: { redirect: to.fullPath } }
   }
 
   if (to.meta.guestOnly && auth.isAuthenticated) {
