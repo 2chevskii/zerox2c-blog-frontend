@@ -6,7 +6,7 @@ import EmptyState from '@/components/EmptyState.vue'
 import ErrorNotice from '@/components/ErrorNotice.vue'
 import LoadingState from '@/components/LoadingState.vue'
 import PostMosaic from '@/components/PostMosaic.vue'
-import PostSearchBar from '@/components/PostSearchBar.vue'
+import PostSearchBar from '@/components/PostSearchBar'
 import { usePostsStore } from '@/stores/posts'
 import type { TagResponse } from '@/types/api'
 
