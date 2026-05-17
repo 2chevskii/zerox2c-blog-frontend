@@ -54,6 +54,10 @@ export interface PostDetailsResponse extends PostListItemResponse {
   readingMinutes: number
 }
 
+export interface PostSlugResolutionResponse {
+  id: string
+}
+
 export type PostReactionType = 'Like' | 'Dislike'
 
 export interface PostReactionRequest {

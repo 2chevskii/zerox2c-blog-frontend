@@ -8,6 +8,7 @@ import type {
   PostReactionRequest,
   PostReactionResponse,
   PostReactionType,
+  PostSlugResolutionResponse,
   UpdatePostCommentRequest,
 } from '@/types/api'
 
@@ -22,8 +23,14 @@ export function getPublishedPosts(query: PostListQuery = {}) {
   })
 }
 
-export function getPublishedPost(slugOrId: string) {
-  return getJson<PostDetailsResponse>(`/api/posts/${encodeURIComponent(slugOrId)}`)
+export function getPublishedPost(postId: string) {
+  return getJson<PostDetailsResponse>(`/api/posts/${encodeURIComponent(postId)}`)
+}
+
+export function resolvePostSlug(slug: string) {
+  return getJson<PostSlugResolutionResponse>(
+    `/api/posts/slugs/${encodeURIComponent(slug)}/id`,
+  )
 }
 
 export function getPostComments(postId: string) {

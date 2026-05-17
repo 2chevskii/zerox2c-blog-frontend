@@ -229,7 +229,7 @@ async function markSeen(reply: ProfileCommentReplyResponse) {
 }
 
 function postPath(post: PostListItemResponse | { postId: string, postSlug: string | null }) {
-  const slugOrId = 'id' in post ? (post.slug ?? post.id) : (post.postSlug ?? post.postId)
+  const slugOrId = 'postId' in post ? (post.postSlug ?? post.postId) : (post.slug ?? post.id)
   return `/posts/${slugOrId}`
 }
 

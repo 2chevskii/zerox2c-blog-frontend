@@ -8,6 +8,7 @@ import {
   getPostReaction,
   getPublishedPost,
   getPublishedPosts,
+  resolvePostSlug,
   setPostReaction,
   updatePostComment,
 } from '@/api/posts'
@@ -110,7 +111,8 @@ export const usePostsStore = defineStore('posts', () => {
     isLoadingPost.value = true
 
     try {
-      selectedPost.value = await getPublishedPost(slugOrId)
+      const postId = isGuid(slugOrId) ? slugOrId : (await resolvePostSlug(slugOrId)).id
+      selectedPost.value = await getPublishedPost(postId)
     } catch (error) {
       postError.value = getPostErrorMessage(error)
     } finally {
@@ -373,4 +375,9 @@ function compareComments(left: PostCommentResponse, right: PostCommentResponse) 
   const leftTime = Date.parse(left.createdAt)
   const rightTime = Date.parse(right.createdAt)
   return leftTime === rightTime ? left.id.localeCompare(right.id) : leftTime - rightTime
+}
+
+function isGuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    .test(value)
 }
