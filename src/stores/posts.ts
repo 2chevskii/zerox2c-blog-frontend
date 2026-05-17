@@ -3,13 +3,17 @@ import { defineStore } from 'pinia'
 import { ApiError } from '@/api/http'
 import {
   clearPostReaction,
+  createPostComment,
+  getPostComments,
   getPostReaction,
   getPublishedPost,
   getPublishedPosts,
   setPostReaction,
+  updatePostComment,
 } from '@/api/posts'
 import { getPublishedTags } from '@/api/tags'
 import type {
+  PostCommentResponse,
   PostDetailsResponse,
   PostListItemResponse,
   PostReactionResponse,
@@ -33,12 +37,16 @@ export const usePostsStore = defineStore('posts', () => {
   const listError = ref<string | null>(null)
   const postError = ref<string | null>(null)
   const reactionError = ref<string | null>(null)
+  const commentsError = ref<string | null>(null)
   const isLoadingList = ref(false)
   const isLoadingMore = ref(false)
   const isLoadingPost = ref(false)
   const isLoadingReaction = ref(false)
   const isUpdatingReaction = ref(false)
+  const isLoadingComments = ref(false)
+  const isSubmittingComment = ref(false)
   const selectedPostReaction = ref<PostReactionType | null>(null)
+  const selectedPostComments = ref<PostCommentResponse[]>([])
   let listRequestId = 0
 
   const selectedTagNames = computed(() => selectedTags.value.map((tag) => tag.name))
@@ -95,8 +103,10 @@ export const usePostsStore = defineStore('posts', () => {
   async function fetchPost(slugOrId: string) {
     selectedPost.value = null
     selectedPostReaction.value = null
+    selectedPostComments.value = []
     postError.value = null
     reactionError.value = null
+    commentsError.value = null
     isLoadingPost.value = true
 
     try {
@@ -105,6 +115,56 @@ export const usePostsStore = defineStore('posts', () => {
       postError.value = getPostErrorMessage(error)
     } finally {
       isLoadingPost.value = false
+    }
+  }
+
+  async function fetchPostComments(postId: string) {
+    commentsError.value = null
+    isLoadingComments.value = true
+
+    try {
+      selectedPostComments.value = await getPostComments(postId)
+    } catch (error) {
+      commentsError.value = getCommentsErrorMessage(error)
+      selectedPostComments.value = []
+    } finally {
+      isLoadingComments.value = false
+    }
+  }
+
+  async function createComment(postId: string, body: string, parentCommentId: string | null = null) {
+    commentsError.value = null
+    isSubmittingComment.value = true
+
+    try {
+      const comment = await createPostComment(postId, {
+        body,
+        parentCommentId,
+      })
+      upsertComment(comment)
+      incrementSelectedPostCommentCount(postId)
+      return comment
+    } catch (error) {
+      commentsError.value = getCommentsErrorMessage(error)
+      return null
+    } finally {
+      isSubmittingComment.value = false
+    }
+  }
+
+  async function editComment(postId: string, commentId: string, body: string) {
+    commentsError.value = null
+    isSubmittingComment.value = true
+
+    try {
+      const comment = await updatePostComment(postId, commentId, { body })
+      upsertComment(comment)
+      return comment
+    } catch (error) {
+      commentsError.value = getCommentsErrorMessage(error)
+      return null
+    } finally {
+      isSubmittingComment.value = false
     }
   }
 
@@ -169,6 +229,11 @@ export const usePostsStore = defineStore('posts', () => {
     reactionError.value = null
   }
 
+  function clearSelectedPostComments() {
+    selectedPostComments.value = []
+    commentsError.value = null
+  }
+
   function appendUniquePosts(page: PostListItemResponse[]) {
     const seenIds = new Set(posts.value.map((post) => post.id))
     posts.value = [...posts.value, ...page.filter((post) => !seenIds.has(post.id))]
@@ -196,6 +261,37 @@ export const usePostsStore = defineStore('posts', () => {
     )
   }
 
+  function upsertComment(comment: PostCommentResponse) {
+    const existingIndex = selectedPostComments.value.findIndex((value) => value.id === comment.id)
+
+    if (existingIndex === -1) {
+      selectedPostComments.value = [...selectedPostComments.value, comment].sort(compareComments)
+      return
+    }
+
+    selectedPostComments.value = selectedPostComments.value.map((value) =>
+      value.id === comment.id ? comment : value,
+    )
+  }
+
+  function incrementSelectedPostCommentCount(postId: string) {
+    if (selectedPost.value?.id === postId) {
+      selectedPost.value = {
+        ...selectedPost.value,
+        commentCount: selectedPost.value.commentCount + 1,
+      }
+    }
+
+    posts.value = posts.value.map((post) =>
+      post.id === postId
+        ? {
+            ...post,
+            commentCount: post.commentCount + 1,
+          }
+        : post,
+    )
+  }
+
   return {
     posts,
     selectedPost,
@@ -206,14 +302,21 @@ export const usePostsStore = defineStore('posts', () => {
     listError,
     postError,
     reactionError,
+    commentsError,
     isLoadingList,
     isLoadingMore,
     isLoadingPost,
     isLoadingReaction,
     isUpdatingReaction,
+    isLoadingComments,
+    isSubmittingComment,
     selectedPostReaction,
+    selectedPostComments,
     fetchPosts,
     fetchPost,
+    fetchPostComments,
+    createComment,
+    editComment,
     fetchPostReaction,
     updatePostReaction,
     fetchTags,
@@ -222,6 +325,7 @@ export const usePostsStore = defineStore('posts', () => {
     removeTag,
     setDateFilters,
     clearSelectedPostReaction,
+    clearSelectedPostComments,
   }
 })
 
@@ -243,4 +347,30 @@ function getReactionErrorMessage(error: unknown) {
   }
 
   return 'Could not update this reaction.'
+}
+
+function getCommentsErrorMessage(error: unknown) {
+  if (error instanceof ApiError) {
+    if (error.status === 401) {
+      return 'Sign in to comment.'
+    }
+
+    if (error.status === 403) {
+      return 'This account cannot change that comment.'
+    }
+
+    if (error.status === 404) {
+      return 'Comments were not found for this post.'
+    }
+
+    return error.message
+  }
+
+  return 'Could not update comments.'
+}
+
+function compareComments(left: PostCommentResponse, right: PostCommentResponse) {
+  const leftTime = Date.parse(left.createdAt)
+  const rightTime = Date.parse(right.createdAt)
+  return leftTime === rightTime ? left.id.localeCompare(right.id) : leftTime - rightTime
 }

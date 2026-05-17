@@ -6,6 +6,7 @@ import { ArrowLeft, CalendarDays, Clock, ThumbsDown, ThumbsUp } from '@lucide/vu
 import { useTitle } from '@vueuse/core'
 import ErrorNotice from '@/components/ErrorNotice.vue'
 import LoadingState from '@/components/LoadingState.vue'
+import PostComments from '@/components/PostComments.vue'
 import PostArtwork from '@/components/PostArtwork.vue'
 import TagPill from '@/components/TagPill.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -161,7 +162,7 @@ function updateReaction(reaction: PostReactionType) {
               {{ formatCount(selectedPost.dislikeCount) }}
             </span>
             <RouterLink
-              to="/auth"
+              to="/signin"
               class="inline-flex min-h-11 items-center rounded-xl border border-brass-200/35 bg-brass-200/10 px-4 py-2 text-sm font-bold text-brass-100 transition hover:border-brass-200/60 hover:bg-brass-200/16"
             >
               Sign in to react
@@ -178,6 +179,8 @@ function updateReaction(reaction: PostReactionType) {
       <section class="article-shell px-5 py-8 sm:px-8 sm:py-10 lg:px-12">
         <div class="article-body mx-auto" v-html="articleHtml" />
       </section>
+
+      <PostComments :post-id="selectedPost.id" />
     </article>
   </main>
 </template>

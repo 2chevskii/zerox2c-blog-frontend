@@ -67,6 +67,26 @@ export interface PostReactionResponse {
   currentUserReaction: PostReactionType | null
 }
 
+export interface PostCommentResponse {
+  id: string
+  postId: string
+  authorUserId: string
+  authorUsername: string
+  parentCommentId: string | null
+  body: string
+  createdAt: string
+  updatedAt: string | null
+}
+
+export interface PostCommentRequest {
+  body: string
+  parentCommentId?: string | null
+}
+
+export interface UpdatePostCommentRequest {
+  body: string
+}
+
 export type PostSearchDateOperator = 'from' | 'to'
 
 export interface PostSearchDateFilter {
