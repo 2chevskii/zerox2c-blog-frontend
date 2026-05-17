@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useDebounceFn, useTitle } from '@vueuse/core'
+import { useDebounceFn, useInfiniteScroll, useTitle, useWindowScroll } from '@vueuse/core'
 import EmptyState from '@/components/EmptyState.vue'
 import ErrorNotice from '@/components/ErrorNotice.vue'
 import LoadingState from '@/components/LoadingState.vue'
@@ -29,7 +29,28 @@ const searchModel = computed({
   set: (value: string) => postsStore.setSearch(value),
 })
 
+const { y: scrollY } = useWindowScroll()
+const lastInfiniteLoadY = ref(0)
 const debouncedSearch = useDebounceFn(() => fetchPostsFromStart(), 250)
+
+const { reset: resetInfiniteScroll } = useInfiniteScroll(
+  window,
+  async () => {
+    await postsStore.fetchPosts()
+    lastInfiniteLoadY.value = scrollY.value
+  },
+  {
+    distance: 600,
+    interval: 300,
+    canLoadMore: () =>
+      scrollY.value > lastInfiniteLoadY.value &&
+      posts.value.length > 0 &&
+      hasMore.value &&
+      !isLoadingList.value &&
+      !isLoadingMore.value &&
+      !listError.value,
+  },
+)
 
 onMounted(() => {
   void postsStore.fetchTags()
@@ -39,8 +60,10 @@ onMounted(() => {
   }
 })
 
-function fetchPostsFromStart() {
-  void postsStore.fetchPosts(true)
+async function fetchPostsFromStart() {
+  await postsStore.fetchPosts(true)
+  lastInfiniteLoadY.value = scrollY.value
+  resetInfiniteScroll()
 }
 
 function selectTag(tag: TagResponse) {
@@ -83,15 +106,17 @@ function updateDateFilters(dateFilters: PostSearchDateFilter[]) {
     <template v-else>
       <PostMosaic :posts="posts" />
 
-      <div v-if="hasMore" class="flex justify-center pt-3">
-        <button
-          type="button"
-          class="min-h-11 rounded-xl border border-brass-200/30 bg-brass-200/10 px-5 py-3 text-sm font-bold uppercase tracking-[0.16em] text-brass-100 transition hover:border-brass-200/55 hover:bg-brass-200/15 disabled:opacity-60"
-          :disabled="isLoadingMore"
-          @click="postsStore.fetchPosts()"
+      <div v-if="isLoadingMore" class="flex justify-center pt-4" aria-live="polite">
+        <div
+          class="flex min-h-11 items-center gap-3 rounded-full border border-brass-200/25 bg-brass-200/10 px-5 py-3 text-sm font-bold uppercase tracking-[0.16em] text-brass-100"
+          role="status"
         >
-          {{ isLoadingMore ? 'Loading' : 'Load more' }}
-        </button>
+          <span class="relative flex size-4" aria-hidden="true">
+            <span class="absolute inline-flex size-full animate-ping rounded-full bg-brass-200/40" />
+            <span class="relative inline-flex size-4 rounded-full border-2 border-brass-100/80 border-t-transparent animate-spin" />
+          </span>
+          Loading
+        </div>
       </div>
     </template>
   </main>

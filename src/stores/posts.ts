@@ -27,10 +27,13 @@ export const usePostsStore = defineStore('posts', () => {
   const isLoadingList = ref(false)
   const isLoadingMore = ref(false)
   const isLoadingPost = ref(false)
+  let listRequestId = 0
 
   const selectedTagNames = computed(() => selectedTags.value.map((tag) => tag.name))
 
   async function fetchPosts(reset = false) {
+    const requestId = ++listRequestId
+
     if (reset) {
       offset.value = 0
       posts.value = []
@@ -56,14 +59,24 @@ export const usePostsStore = defineStore('posts', () => {
         to: publishedTo.value,
       })
 
+      if (requestId !== listRequestId) {
+        return
+      }
+
       appendUniquePosts(page)
       offset.value += page.length
       hasMore.value = page.length === PAGE_SIZE
     } catch {
+      if (requestId !== listRequestId) {
+        return
+      }
+
       listError.value = 'Could not load posts. Check that the backend API is running.'
     } finally {
-      isLoadingList.value = false
-      isLoadingMore.value = false
+      if (requestId === listRequestId) {
+        isLoadingList.value = false
+        isLoadingMore.value = false
+      }
     }
   }
 

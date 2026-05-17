@@ -17,7 +17,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="h-screen text-mist-100 relative scroll-auto">
+  <div class="relative min-h-screen text-mist-100 scroll-auto">
     <AppHeader />
     <RouterView />
   </div>
