@@ -26,12 +26,16 @@ const searchInput = ref<HTMLInputElement | null>(null)
 const rootElement = ref<HTMLElement | null>(null)
 const isSearchFocused = ref(false)
 const isAutocompleteDismissed = ref(false)
-const autocompleteSuggestions = ref<SearchSuggestionResponse[]>([])
+const autocompleteSuggestions = ref<AutocompleteSuggestion[]>([])
 const activeSuggestionIndex = ref(0)
 const caretIndex = ref(0)
 const selectedDateFilters = ref<DateFilter[]>([])
+const draftPills = ref<SemanticPill[]>([])
+const activePillId = ref<string | null>(null)
+let nextPillId = 1
 
 type AutocompleteMode = 'tag' | 'keyword'
+type DateOperator = 'from' | 'to'
 
 interface ActiveToken {
   start: number
@@ -39,39 +43,43 @@ interface ActiveToken {
   text: string
 }
 
-interface DateToken extends ActiveToken {
-  operator: 'from' | 'to'
+interface DateFilter {
+  operator: DateOperator
   dateValue: string
 }
 
-interface DateFilter {
-  operator: 'from' | 'to'
-  dateValue: string
+interface SemanticPill {
+  id: string
+  type: 'tag' | 'date'
+  operator?: DateOperator
+  value: string
+  isEditing: boolean
+  isInvalid: boolean
 }
+
+type AutocompleteSuggestion =
+  | SearchSuggestionResponse
+  | {
+      id: string
+      label: string
+      value: string
+      type: 'semantic'
+      operator: DateOperator
+    }
 
 const activeToken = computed(() => getActiveToken(props.modelValue, caretIndex.value))
-
-const activeDateToken = computed<DateToken | null>(() => {
-  const token = activeToken.value
-  const match = token.text.match(/^(from|to):(.*)$/i)
-
-  if (!match) {
-    return null
-  }
-
-  return {
-    ...token,
-    operator: match[1].toLowerCase() as 'from' | 'to',
-    dateValue: match[2],
-  }
-})
+const activePill = computed(() => draftPills.value.find((pill) => pill.id === activePillId.value) ?? null)
 
 const activeAutocompleteMode = computed<AutocompleteMode | null>(() => {
-  const token = activeToken.value.text
+  if (activePill.value?.type === 'tag' && activePill.value.isEditing) {
+    return 'tag'
+  }
 
-  if (activeDateToken.value) {
+  if (activePill.value) {
     return null
   }
+
+  const token = activeToken.value.text
 
   if (token.startsWith('#')) {
     return 'tag'
@@ -92,11 +100,13 @@ const showAutocomplete = computed(
     autocompleteSuggestions.value.length > 0,
 )
 
-const showDatePicker = computed(() => isSearchFocused.value && activeDateToken.value !== null)
+const showDatePicker = computed(
+  () => isSearchFocused.value && activePill.value?.type === 'date' && activePill.value.isEditing,
+)
 
 const dateInputValue = computed(() => {
-  const dateValue = activeDateToken.value?.dateValue ?? ''
-  return /^\d{4}-\d{2}-\d{2}$/.test(dateValue) ? dateValue : ''
+  const dateValue = activePill.value?.type === 'date' ? activePill.value.value : ''
+  return isValidDate(dateValue) ? dateValue : ''
 })
 
 const activeDescendantId = computed(() => {
@@ -108,7 +118,16 @@ const activeDescendantId = computed(() => {
 })
 
 watch(
-  () => [props.modelValue, props.availableTags, props.selectedTags, caretIndex.value] as const,
+  () =>
+    [
+      props.modelValue,
+      props.availableTags,
+      props.selectedTags,
+      caretIndex.value,
+      activePill.value?.id,
+      activePill.value?.value,
+      activePill.value?.type,
+    ] as const,
   () => {
     void refreshAutocomplete()
   },
@@ -127,32 +146,25 @@ function updateSearch(value: string) {
 
 function onSearchInput(event: Event) {
   const input = event.target as HTMLInputElement
-  caretIndex.value = input.selectionStart ?? input.value.length
-  updateSearch(input.value)
-}
+  const value = input.value
+  const cursor = input.selectionStart ?? value.length
+  const token = getActiveToken(value, cursor)
+  const semanticPill = getSemanticPillFromToken(token.text)
 
-function selectTag(tag: TagResponse) {
-  emit('update:modelValue', withoutCompletedToken())
-  emit('select-tag', tag)
-  isAutocompleteDismissed.value = true
-  void nextTick(() => searchInput.value?.focus())
-}
+  caretIndex.value = cursor
 
-function removeTag(name: string) {
-  emit('remove-tag', name)
-  void nextTick(() => searchInput.value?.focus())
-}
+  if (semanticPill) {
+    createDraftPill(semanticPill, value, token)
+    return
+  }
 
-function removeDateFilter(operator: DateFilter['operator']) {
-  selectedDateFilters.value = selectedDateFilters.value.filter((dateFilter) => dateFilter.operator !== operator)
-  emit('search')
-  void nextTick(() => searchInput.value?.focus())
+  updateSearch(value)
 }
 
 function onSearchKeydown(event: KeyboardEvent) {
-  if (showDatePicker.value && event.key === 'Enter' && isActiveDateComplete()) {
+  if (showAutocomplete.value && (event.key === 'Enter' || event.key === 'Tab')) {
     event.preventDefault()
-    commitActiveDateToken()
+    selectSuggestion(autocompleteSuggestions.value[activeSuggestionIndex.value])
     return
   }
 
@@ -170,25 +182,70 @@ function onSearchKeydown(event: KeyboardEvent) {
     return
   }
 
-  if (showAutocomplete.value && event.key === 'Enter') {
+  if (event.key === 'Backspace' && isMainInputAtStart()) {
+    removeLastPillBeforeSearch()
     event.preventDefault()
-    selectSuggestion(autocompleteSuggestions.value[activeSuggestionIndex.value])
-    return
-  }
-
-  if (event.key === 'Backspace' && props.modelValue.length === 0 && props.selectedTags.length > 0) {
-    removeTag(props.selectedTags[props.selectedTags.length - 1].name)
     return
   }
 
   if (event.key === 'Escape') {
-    if (showDatePicker.value) {
-      blurSearch()
+    isAutocompleteDismissed.value = true
+  }
+}
+
+function onPillKeydown(pill: SemanticPill, event: KeyboardEvent) {
+  const input = event.target as HTMLInputElement
+  const selectionStart = input.selectionStart ?? 0
+  const selectionEnd = input.selectionEnd ?? selectionStart
+
+  if (event.key === 'Backspace' && selectionStart === 0 && selectionEnd === 0) {
+    event.preventDefault()
+    removeDraftPill(pill.id)
+    focusSearchAtStart()
+    return
+  }
+
+  if (event.key === 'Enter' || event.key === 'Tab') {
+    event.preventDefault()
+
+    if (pill.type === 'tag' && autocompleteSuggestions.value.length > 0) {
+      selectSuggestion(autocompleteSuggestions.value[activeSuggestionIndex.value])
       return
     }
 
-    isAutocompleteDismissed.value = true
+    confirmOrEscapePill(pill)
+    return
   }
+
+  if (event.key === ' ') {
+    event.preventDefault()
+    confirmOrEscapePill(pill)
+    return
+  }
+
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    escapePill(pill)
+  }
+}
+
+function onPillInput(pill: SemanticPill, event: Event) {
+  pill.value = (event.target as HTMLInputElement).value
+  pill.isInvalid = false
+  pill.isEditing = true
+  activePillId.value = pill.id
+  isAutocompleteDismissed.value = false
+}
+
+function activatePill(pill: SemanticPill) {
+  pill.isEditing = true
+  activePillId.value = pill.id
+  isAutocompleteDismissed.value = false
+}
+
+function editPill(pill: SemanticPill) {
+  activatePill(pill)
+  void nextTick(() => focusPillInput(pill.id))
 }
 
 function onFocusIn() {
@@ -215,20 +272,35 @@ function blurSearch() {
 function updateCaret(event: Event) {
   const input = event.target as HTMLInputElement
   caretIndex.value = input.selectionStart ?? input.value.length
+  activePillId.value = null
 
-  if (event instanceof KeyboardEvent && ['ArrowDown', 'ArrowUp', 'Enter', 'Escape'].includes(event.key)) {
+  if (event instanceof KeyboardEvent && ['ArrowDown', 'ArrowUp', 'Enter', 'Escape', 'Tab'].includes(event.key)) {
     return
   }
 
   isAutocompleteDismissed.value = false
 }
 
-function selectSuggestion(suggestion: SearchSuggestionResponse | undefined) {
+function selectSuggestion(suggestion: AutocompleteSuggestion | undefined) {
   if (!suggestion) {
     return
   }
 
+  if (suggestion.type === 'semantic') {
+    createDraftPill(
+      { type: 'date', operator: suggestion.operator, value: '' },
+      props.modelValue,
+      activeToken.value,
+    )
+    return
+  }
+
   if (suggestion.type === 'tag') {
+    if (activePill.value?.type === 'tag' && suggestion.tag) {
+      confirmTagPill(activePill.value, suggestion.tag)
+      return
+    }
+
     if (suggestion.tag) {
       selectTag(suggestion.tag)
     }
@@ -239,31 +311,68 @@ function selectSuggestion(suggestion: SearchSuggestionResponse | undefined) {
   replaceCompletedToken(suggestion.value)
   isAutocompleteDismissed.value = true
   emit('search')
-  void nextTick(() => searchInput.value?.focus())
+  focusSearch()
 }
 
 function selectDate(event: Event) {
+  const pill = activePill.value
   const value = (event.target as HTMLInputElement).value
 
-  if (!value || !activeDateToken.value) {
+  if (!value || pill?.type !== 'date') {
     return
   }
 
-  setDateFilter(activeDateToken.value.operator, value)
-  emit('update:modelValue', withoutCompletedToken())
-  emit('search')
-  void nextTick(() => searchInput.value?.focus())
+  pill.value = value
+  confirmDatePill(pill)
 }
 
-function commitActiveDateToken() {
-  if (!activeDateToken.value || !isActiveDateComplete()) {
+function selectTag(tag: TagResponse) {
+  emit('update:modelValue', withoutCompletedToken())
+  emit('select-tag', tag)
+  isAutocompleteDismissed.value = true
+  focusSearch()
+}
+
+function removeTag(name: string) {
+  emit('remove-tag', name)
+  focusSearch()
+}
+
+function removeDateFilter(operator: DateFilter['operator']) {
+  selectedDateFilters.value = selectedDateFilters.value.filter((dateFilter) => dateFilter.operator !== operator)
+  emit('search')
+  focusSearch()
+}
+
+function removeDraftPill(id: string) {
+  draftPills.value = draftPills.value.filter((pill) => pill.id !== id)
+
+  if (activePillId.value === id) {
+    activePillId.value = null
+  }
+}
+
+function removeLastPillBeforeSearch() {
+  const lastDraftPill = draftPills.value[draftPills.value.length - 1]
+
+  if (lastDraftPill) {
+    removeDraftPill(lastDraftPill.id)
+    emit('search')
     return
   }
 
-  setDateFilter(activeDateToken.value.operator, activeDateToken.value.dateValue)
-  emit('update:modelValue', withoutCompletedToken())
-  emit('search')
-  void nextTick(() => searchInput.value?.focus())
+  const lastDateFilter = selectedDateFilters.value[selectedDateFilters.value.length - 1]
+
+  if (lastDateFilter) {
+    removeDateFilter(lastDateFilter.operator)
+    return
+  }
+
+  const lastTag = props.selectedTags[props.selectedTags.length - 1]
+
+  if (lastTag) {
+    removeTag(lastTag.name)
+  }
 }
 
 async function refreshAutocomplete() {
@@ -274,10 +383,164 @@ async function refreshAutocomplete() {
     return
   }
 
-  autocompleteSuggestions.value =
-    mode === 'tag'
-      ? await getSearchTagSuggestions(activeToken.value.text.slice(1), props.availableTags, props.selectedTags)
-      : await getSearchKeywordSuggestions(activeToken.value.text)
+  if (mode === 'tag') {
+    const query = activePill.value?.type === 'tag' ? activePill.value.value : activeToken.value.text.slice(1)
+    autocompleteSuggestions.value = await getSearchTagSuggestions(query, props.availableTags, props.selectedTags)
+    return
+  }
+
+  const semanticSuggestions = getSemanticSuggestions(activeToken.value.text)
+  const keywordSuggestions = await getSearchKeywordSuggestions(activeToken.value.text)
+  autocompleteSuggestions.value = [...semanticSuggestions, ...keywordSuggestions]
+}
+
+function getSemanticSuggestions(query: string): AutocompleteSuggestion[] {
+  const needle = query.trim().toLowerCase()
+
+  if (!needle || needle.startsWith('#') || needle.includes(':')) {
+    return []
+  }
+
+  return (['from', 'to'] as const)
+    .filter((operator) => operator.startsWith(needle))
+    .map((operator) => ({
+      id: `semantic-${operator}`,
+      label: `${operator}:`,
+      value: `${operator}:`,
+      type: 'semantic',
+      operator,
+    }))
+}
+
+function getSemanticPillFromToken(token: string) {
+  if (token.startsWith('#')) {
+    return {
+      type: 'tag' as const,
+      value: token.slice(1),
+    }
+  }
+
+  const dateMatch = token.match(/^(from|to):(.*)$/i)
+
+  if (dateMatch) {
+    return {
+      type: 'date' as const,
+      operator: dateMatch[1].toLowerCase() as DateOperator,
+      value: dateMatch[2],
+    }
+  }
+
+  return null
+}
+
+function createDraftPill(
+  draft: { type: 'tag'; value: string } | { type: 'date'; operator: DateOperator; value: string },
+  value: string,
+  token: ActiveToken,
+) {
+  const pill: SemanticPill = {
+    id: `semantic-pill-${nextPillId++}`,
+    type: draft.type,
+    operator: draft.type === 'date' ? draft.operator : undefined,
+    value: draft.value,
+    isEditing: true,
+    isInvalid: false,
+  }
+
+  if (pill.type === 'date') {
+    draftPills.value = draftPills.value.filter(
+      (existingPill) => existingPill.type !== 'date' || existingPill.operator !== pill.operator,
+    )
+    selectedDateFilters.value = selectedDateFilters.value.filter(
+      (dateFilter) => dateFilter.operator !== pill.operator,
+    )
+  }
+
+  draftPills.value = [...draftPills.value, pill]
+  activePillId.value = pill.id
+  emit('update:modelValue', withoutToken(value, token))
+  isAutocompleteDismissed.value = false
+  emit('search')
+  void nextTick(() => focusPillInput(pill.id))
+}
+
+function confirmOrEscapePill(pill: SemanticPill) {
+  if (pill.type === 'tag') {
+    const tag = findExactTag(pill.value)
+
+    if (tag) {
+      confirmTagPill(pill, tag)
+      return
+    }
+
+    escapePill(pill)
+    return
+  }
+
+  if (pill.type === 'date' && isValidDate(pill.value)) {
+    confirmDatePill(pill)
+    return
+  }
+
+  escapePill(pill)
+}
+
+function escapePill(pill: SemanticPill) {
+  pill.isEditing = false
+  pill.isInvalid = !isPillValid(pill)
+  activePillId.value = null
+  focusSearchAtStart()
+}
+
+function confirmTagPill(pill: SemanticPill, tag: TagResponse) {
+  removeDraftPill(pill.id)
+  emit('select-tag', tag)
+  isAutocompleteDismissed.value = true
+  focusSearchAtStart()
+}
+
+function confirmDatePill(pill: SemanticPill) {
+  if (pill.type !== 'date' || !pill.operator) {
+    return
+  }
+
+  setDateFilter(pill.operator, pill.value)
+  removeDraftPill(pill.id)
+  isAutocompleteDismissed.value = true
+  emit('search')
+  focusSearchAtStart()
+}
+
+function findExactTag(value: string) {
+  const normalizedValue = value.trim().toLowerCase()
+
+  if (!normalizedValue || props.selectedTags.some((tag) => tag.name.toLowerCase() === normalizedValue)) {
+    return undefined
+  }
+
+  return props.availableTags.find((tag) => tag.name.toLowerCase() === normalizedValue)
+}
+
+function isPillValid(pill: SemanticPill) {
+  return pill.type === 'tag' ? Boolean(findExactTag(pill.value)) : isValidDate(pill.value)
+}
+
+function isValidDate(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false
+  }
+
+  const date = new Date(`${value}T00:00:00.000Z`)
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
+}
+
+function setDateFilter(operator: DateFilter['operator'], dateValue: string) {
+  const dateFilterOrder: Record<DateFilter['operator'], number> = { from: 0, to: 1 }
+
+  selectedDateFilters.value = [
+    ...selectedDateFilters.value.filter((dateFilter) => dateFilter.operator !== operator),
+    { operator, dateValue },
+  ].sort((left, right) => dateFilterOrder[left.operator] - dateFilterOrder[right.operator])
 }
 
 function getActiveToken(value: string, cursorPosition: number): ActiveToken {
@@ -294,13 +557,11 @@ function getActiveToken(value: string, cursorPosition: number): ActiveToken {
 }
 
 function withoutCompletedToken() {
-  const token = activeToken.value
-  const nextValue = `${props.modelValue.slice(0, token.start)}${props.modelValue.slice(token.end)}`.replace(
-    /\s{2,}/g,
-    ' ',
-  )
+  return withoutToken(props.modelValue, activeToken.value)
+}
 
-  return nextValue.trim()
+function withoutToken(value: string, token: ActiveToken) {
+  return `${value.slice(0, token.start)}${value.slice(token.end)}`.replace(/\s{2,}/g, ' ').trim()
 }
 
 function replaceCompletedToken(replacement: string) {
@@ -313,17 +574,37 @@ function replaceCompletedToken(replacement: string) {
   caretIndex.value = token.start + replacement.length
 }
 
-function isActiveDateComplete() {
-  return /^\d{4}-\d{2}-\d{2}$/.test(activeDateToken.value?.dateValue ?? '')
+function isMainInputAtStart() {
+  if (!searchInput.value) {
+    return props.modelValue.length === 0
+  }
+
+  return searchInput.value.selectionStart === 0 && searchInput.value.selectionEnd === 0
 }
 
-function setDateFilter(operator: DateFilter['operator'], dateValue: string) {
-  const dateFilterOrder: Record<DateFilter['operator'], number> = { from: 0, to: 1 }
+function focusSearch() {
+  void nextTick(() => searchInput.value?.focus())
+}
 
-  selectedDateFilters.value = [
-    ...selectedDateFilters.value.filter((dateFilter) => dateFilter.operator !== operator),
-    { operator, dateValue },
-  ].sort((left, right) => dateFilterOrder[left.operator] - dateFilterOrder[right.operator])
+function focusSearchAtStart() {
+  void nextTick(() => {
+    searchInput.value?.focus()
+    searchInput.value?.setSelectionRange(0, 0)
+  })
+}
+
+function focusPillInput(id: string) {
+  const pillInput = rootElement.value?.querySelector<HTMLInputElement>(`[data-pill-input="${id}"]`)
+  pillInput?.focus()
+  pillInput?.setSelectionRange(pillInput.value.length, pillInput.value.length)
+}
+
+function pillPrefix(pill: SemanticPill) {
+  return pill.type === 'tag' ? '#' : `${pill.operator}:`
+}
+
+function pillTitle(pill: SemanticPill) {
+  return pill.type === 'tag' ? `Remove #${pill.value}` : `Remove ${pill.operator}:${pill.value}`
 }
 </script>
 
@@ -375,6 +656,56 @@ function setDateFilter(operator: DateFilter['operator'], dateValue: string) {
         <X class="h-3 w-3" />
       </button>
 
+      <template v-for="pill in draftPills" :key="pill.id">
+        <div
+          v-if="pill.isEditing"
+          class="inline-flex min-h-6 max-w-full items-center gap-1 rounded-md border px-2 py-0.5 text-[0.68rem] font-semibold transition"
+          :class="
+            pill.isInvalid
+              ? 'border-ember-300/45 bg-ember-500/12 text-ember-100'
+              : 'border-mist-50/10 bg-mist-50/7 text-mist-200'
+          "
+        >
+          <span>{{ pillPrefix(pill) }}</span>
+          <input
+            :data-pill-input="pill.id"
+            :value="pill.value"
+            :placeholder="pill.type === 'tag' ? 'tag' : 'yyyy-mm-dd'"
+            role="combobox"
+            class="min-h-5 min-w-12 max-w-36 border-0 bg-transparent p-0 text-[0.68rem] font-semibold text-inherit outline-none placeholder:text-mist-300/65 focus-visible:outline-none"
+            :style="{ width: `${Math.max(pill.value.length, pill.type === 'tag' ? 4 : 10)}ch` }"
+            autocomplete="off"
+            @focus="activatePill(pill)"
+            @input="onPillInput(pill, $event)"
+            @keydown="onPillKeydown(pill, $event)"
+          />
+          <button
+            type="button"
+            class="inline-flex text-inherit opacity-80 transition hover:opacity-100 focus-visible:outline-none"
+            :title="pillTitle(pill)"
+            @mousedown.prevent="removeDraftPill(pill.id); focusSearchAtStart()"
+          >
+            <X class="h-3 w-3" />
+          </button>
+        </div>
+
+        <button
+          v-else
+          type="button"
+          class="inline-flex min-h-6 max-w-full items-center gap-1.5 rounded-md border px-2 py-0.5 text-[0.68rem] font-semibold transition focus-visible:outline-none"
+          :class="
+            pill.isInvalid
+              ? 'border-ember-300/45 bg-ember-500/12 text-ember-100 hover:bg-ember-500/16'
+              : 'border-mist-50/10 bg-mist-50/7 text-mist-200 hover:border-mist-50/18 hover:bg-mist-50/10 hover:text-mist-50'
+          "
+          :title="pillTitle(pill)"
+          @click="editPill(pill)"
+        >
+          <span class="truncate">{{ pillPrefix(pill) }}{{ pill.value }}</span>
+          <X class="h-3 w-3" @click.stop="removeDraftPill(pill.id); focusSearchAtStart()" />
+        </button>
+      </template>
+
       <input
         id="post-search"
         ref="searchInput"
@@ -419,11 +750,12 @@ function setDateFilter(operator: DateFilter['operator'], dateValue: string) {
       >
         <span class="inline-flex items-center gap-2">
           <Hash v-if="suggestion.type === 'tag'" class="h-4 w-4 text-brass-200" />
+          <Calendar v-else-if="suggestion.type === 'semantic'" class="h-4 w-4 text-brass-200" />
           <Search v-else class="h-4 w-4 text-brass-200" />
           {{ suggestion.label }}
         </span>
         <span class="text-[0.65rem] uppercase tracking-[0.22em] text-mist-300">
-          {{ suggestion.type === 'tag' ? 'Tag' : 'Keyword' }}
+          {{ suggestion.type === 'tag' ? 'Tag' : suggestion.type === 'semantic' ? 'Date' : 'Keyword' }}
         </span>
       </button>
     </div>
@@ -434,7 +766,7 @@ function setDateFilter(operator: DateFilter['operator'], dateValue: string) {
     >
       <label class="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-mist-300">
         <Calendar class="h-4 w-4 text-brass-200" />
-        {{ activeDateToken?.operator === 'from' ? 'From date' : 'To date' }}
+        {{ activePill?.operator === 'from' ? 'From date' : 'To date' }}
       </label>
       <input
         type="date"
