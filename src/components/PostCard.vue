@@ -57,7 +57,7 @@ function formatCount(value: CountValue) {
 
       <div class="mt-auto flex flex-wrap items-center gap-2 text-xs font-bold text-mist-100">
         <span class="inline-flex items-center gap-1.5 rounded-lg bg-[#303030] px-2.5 py-1.5">
-          <ThumbsUp class="h-3.5 w-3.5 text-brass-100" :stroke-width="1.8" />
+          <ThumbsUp class="h-3.5 w-3.5 text-mist-300" :stroke-width="1.8" />
           {{ formatCount(post.likeCount) }}
         </span>
         <span class="inline-flex items-center gap-1.5 rounded-lg bg-[#303030] px-2.5 py-1.5">
