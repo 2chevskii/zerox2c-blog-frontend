@@ -8,7 +8,7 @@ import LoadingState from '@/components/LoadingState.vue'
 import PostMosaic from '@/components/PostMosaic.vue'
 import PostSearchBar from '@/components/PostSearchBar'
 import { usePostsStore } from '@/stores/posts'
-import type { TagResponse } from '@/types/api'
+import type { PostSearchDateFilter, TagResponse } from '@/types/api'
 
 useTitle('0x2c.dev')
 
@@ -52,6 +52,10 @@ function removeTag(name: string) {
   postsStore.removeTag(name)
   fetchPostsFromStart()
 }
+
+function updateDateFilters(dateFilters: PostSearchDateFilter[]) {
+  postsStore.setDateFilters(dateFilters)
+}
 </script>
 
 <template>
@@ -65,6 +69,7 @@ function removeTag(name: string) {
         @search="debouncedSearch"
         @select-tag="selectTag"
         @remove-tag="removeTag"
+        @date-filters-change="updateDateFilters"
       />
     </section>
 

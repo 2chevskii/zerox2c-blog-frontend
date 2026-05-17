@@ -3,7 +3,12 @@ import { defineStore } from 'pinia'
 import { ApiError } from '@/api/http'
 import { getPublishedPost, getPublishedPosts } from '@/api/posts'
 import { getPublishedTags } from '@/api/tags'
-import type { PostDetailsResponse, PostListItemResponse, TagResponse } from '@/types/api'
+import type {
+  PostDetailsResponse,
+  PostListItemResponse,
+  PostSearchDateFilter,
+  TagResponse,
+} from '@/types/api'
 
 const PAGE_SIZE = 9
 
@@ -12,6 +17,8 @@ export const usePostsStore = defineStore('posts', () => {
   const selectedPost = ref<PostDetailsResponse | null>(null)
   const search = ref('')
   const selectedTags = ref<TagResponse[]>([])
+  const publishedFrom = ref<string | undefined>()
+  const publishedTo = ref<string | undefined>()
   const availableTags = ref<TagResponse[]>([])
   const offset = ref(0)
   const hasMore = ref(true)
@@ -45,6 +52,8 @@ export const usePostsStore = defineStore('posts', () => {
         limit: PAGE_SIZE,
         search: search.value.trim() || undefined,
         tags: selectedTagNames.value,
+        from: publishedFrom.value,
+        to: publishedTo.value,
       })
 
       appendUniquePosts(page)
@@ -94,6 +103,11 @@ export const usePostsStore = defineStore('posts', () => {
     selectedTags.value = selectedTags.value.filter((tag) => tag.name !== name)
   }
 
+  function setDateFilters(dateFilters: PostSearchDateFilter[]) {
+    publishedFrom.value = dateFilters.find((dateFilter) => dateFilter.operator === 'from')?.dateValue
+    publishedTo.value = dateFilters.find((dateFilter) => dateFilter.operator === 'to')?.dateValue
+  }
+
   function appendUniquePosts(page: PostListItemResponse[]) {
     const seenIds = new Set(posts.value.map((post) => post.id))
     posts.value = [...posts.value, ...page.filter((post) => !seenIds.has(post.id))]
@@ -117,6 +131,7 @@ export const usePostsStore = defineStore('posts', () => {
     setSearch,
     addTag,
     removeTag,
+    setDateFilters,
   }
 })
 

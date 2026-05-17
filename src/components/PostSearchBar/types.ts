@@ -1,5 +1,9 @@
 import type { SearchSuggestionResponse } from '@/api/search'
-import type { TagResponse } from '@/types/api'
+import type {
+  PostSearchDateFilter,
+  PostSearchDateOperator,
+  TagResponse,
+} from '@/types/api'
 
 export interface PostSearchBarProps {
   modelValue: string
@@ -13,6 +17,7 @@ export interface PostSearchBarEmits {
   search: []
   'select-tag': [tag: TagResponse]
   'remove-tag': [name: string]
+  'date-filters-change': [dateFilters: PostSearchDateFilter[]]
 }
 
 export type PostSearchBarEmit = <Event extends keyof PostSearchBarEmits>(
@@ -21,7 +26,7 @@ export type PostSearchBarEmit = <Event extends keyof PostSearchBarEmits>(
 ) => void
 
 export type AutocompleteMode = 'tag' | 'keyword'
-export type DateOperator = 'from' | 'to'
+export type DateOperator = PostSearchDateOperator
 export type CaretPlacement = 'start' | 'end'
 
 export interface PillCompletionOptions {
@@ -34,10 +39,7 @@ export interface ActiveToken {
   text: string
 }
 
-export interface DateFilter {
-  operator: DateOperator
-  dateValue: string
-}
+export type DateFilter = PostSearchDateFilter
 
 export interface SemanticPill {
   id: string

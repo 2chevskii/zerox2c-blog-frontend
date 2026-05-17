@@ -24,11 +24,20 @@ export interface PostDetailsResponse extends PostListItemResponse {
   readingMinutes: number
 }
 
+export type PostSearchDateOperator = 'from' | 'to'
+
+export interface PostSearchDateFilter {
+  operator: PostSearchDateOperator
+  dateValue: string
+}
+
 export interface PostListQuery {
   offset?: number
   limit?: number
   search?: string
   tags?: string[]
+  from?: string
+  to?: string
 }
 
 export interface TagListQuery {

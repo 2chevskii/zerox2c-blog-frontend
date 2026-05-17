@@ -324,7 +324,7 @@ export function usePostSearchBar(
   }
 
   function removeDateFilter(operator: DateFilter['operator']) {
-    selectedDateFilters.value = selectedDateFilters.value.filter((dateFilter) => dateFilter.operator !== operator)
+    setDateFilters(selectedDateFilters.value.filter((dateFilter) => dateFilter.operator !== operator))
     removeOrderItems((item) => item.kind === 'date' && item.operator === operator)
     emit('search')
     focusSearch()
@@ -409,9 +409,7 @@ export function usePostSearchBar(
           (item.kind === 'date' && item.operator === pill.operator) ||
           (item.kind === 'draft' && replacedDateDraftIds.includes(item.draftId)),
       )
-      selectedDateFilters.value = selectedDateFilters.value.filter(
-        (dateFilter) => dateFilter.operator !== pill.operator,
-      )
+      setDateFilters(selectedDateFilters.value.filter((dateFilter) => dateFilter.operator !== pill.operator))
     }
 
     draftPills.value = [...draftPills.value, pill]
@@ -519,10 +517,15 @@ export function usePostSearchBar(
   }
 
   function setDateFilter(operator: DateFilter['operator'], dateValue: string) {
-    selectedDateFilters.value = [
+    setDateFilters([
       ...selectedDateFilters.value.filter((dateFilter) => dateFilter.operator !== operator),
       { operator, dateValue },
-    ]
+    ])
+  }
+
+  function setDateFilters(dateFilters: DateFilter[]) {
+    selectedDateFilters.value = dateFilters
+    emit('date-filters-change', dateFilters.map((dateFilter) => ({ ...dateFilter })))
   }
 
   function removeSemanticItem(item: RenderSemanticItem) {
@@ -579,8 +582,8 @@ export function usePostSearchBar(
     })
 
     replaceOrderAtIndex(item.orderIndex, { id: `order-${pill.id}`, kind: 'draft', draftId: pill.id })
-    selectedDateFilters.value = selectedDateFilters.value.filter(
-      (dateFilter) => dateFilter.operator !== item.dateFilter.operator,
+    setDateFilters(
+      selectedDateFilters.value.filter((dateFilter) => dateFilter.operator !== item.dateFilter.operator),
     )
     draftPills.value = [...draftPills.value, pill]
     activePillId.value = pill.id

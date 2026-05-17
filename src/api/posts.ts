@@ -11,6 +11,8 @@ export function getPublishedPosts(query: PostListQuery = {}) {
     limit: query.limit,
     search: query.search,
     tags: query.tags?.join(','),
+    from: query.from,
+    to: query.to,
   })
 }
 
