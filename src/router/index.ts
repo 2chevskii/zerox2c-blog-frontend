@@ -3,6 +3,7 @@ import AuthView from '@/views/AuthView.vue'
 import HomeView from '@/views/HomeView.vue'
 import NotFoundView from '@/views/NotFoundView.vue'
 import PostView from '@/views/PostView.vue'
+import ProfileView from '@/views/ProfileView.vue'
 import { useAuthStore } from '@/stores/auth'
 
 export const router = createRouter({
@@ -31,6 +32,12 @@ export const router = createRouter({
       path: '/posts/:slug',
       name: 'post',
       component: PostView,
+    },
+    {
+      path: '/profile',
+      name: 'profile',
+      component: ProfileView,
+      meta: { requiresAuth: true },
     },
     {
       path: '/:pathMatch(.*)*',

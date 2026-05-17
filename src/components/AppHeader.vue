@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { LogIn, LogOut, UserPlus } from '@lucide/vue'
+import { LogIn, LogOut, Settings, UserPlus } from '@lucide/vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
@@ -27,6 +27,14 @@ async function logout() {
                 Blocked
               </span>
             </div>
+            <RouterLink
+              to="/profile"
+              class="grid h-11 w-11 shrink-0 place-items-center border-l border-mist-50/10 text-mist-300 transition hover:bg-[#353535] hover:text-brass-100"
+              title="Profile settings"
+              aria-label="Profile settings"
+            >
+              <Settings class="h-4 w-4" />
+            </RouterLink>
             <button
               type="button"
               class="grid h-11 w-11 shrink-0 place-items-center border-l border-mist-50/10 text-mist-300 transition hover:bg-[#353535] hover:text-ember-100"

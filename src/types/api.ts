@@ -87,6 +87,43 @@ export interface UpdatePostCommentRequest {
   body: string
 }
 
+export interface ProfileCommentResponse {
+  id: string
+  postId: string
+  postSlug: string | null
+  postTitle: string
+  parentCommentId: string | null
+  body: string
+  createdAt: string
+  updatedAt: string | null
+}
+
+export interface ProfileCommentReplyResponse {
+  id: string
+  postId: string
+  postSlug: string | null
+  postTitle: string
+  parentCommentId: string
+  parentCommentBody: string
+  authorUserId: string
+  authorUsername: string
+  body: string
+  createdAt: string
+  isSeen: boolean
+  seenAt: string | null
+}
+
+export interface ProfileResponse {
+  userId: string
+  username: string
+  email: string
+  avatarImageId: string | null
+  recentlyViewedPosts: PostListItemResponse[]
+  likedPosts: PostListItemResponse[]
+  comments: ProfileCommentResponse[]
+  replies: ProfileCommentReplyResponse[]
+}
+
 export type PostSearchDateOperator = 'from' | 'to'
 
 export interface PostSearchDateFilter {
