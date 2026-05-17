@@ -1,6 +1,11 @@
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue'
-import { Hash, Search, X } from '@lucide/vue'
+import { computed, nextTick, ref, watch } from 'vue'
+import { Calendar, Hash, Search, X } from '@lucide/vue'
+import {
+  getSearchKeywordSuggestions,
+  getSearchTagSuggestions,
+  type SearchSuggestionResponse,
+} from '@/api/search'
 import type { TagResponse } from '@/types/api'
 
 const props = defineProps<{
@@ -18,47 +23,112 @@ const emit = defineEmits<{
 }>()
 
 const searchInput = ref<HTMLInputElement | null>(null)
-const isTagMenuOpen = ref(false)
+const rootElement = ref<HTMLElement | null>(null)
 const isSearchFocused = ref(false)
+const isAutocompleteDismissed = ref(false)
+const autocompleteSuggestions = ref<SearchSuggestionResponse[]>([])
+const activeSuggestionIndex = ref(0)
+const caretIndex = ref(0)
 
-const tagNeedle = computed(() => {
-  const hashMatch = props.modelValue.match(/(?:^|\s)#([a-z0-9-]*)$/i)
-  if (hashMatch) {
-    return hashMatch[1].toLowerCase()
+type AutocompleteMode = 'tag' | 'keyword'
+
+interface ActiveToken {
+  start: number
+  end: number
+  text: string
+}
+
+interface DateToken extends ActiveToken {
+  operator: 'from' | 'to'
+  dateValue: string
+}
+
+const activeToken = computed(() => getActiveToken(props.modelValue, caretIndex.value))
+
+const activeDateToken = computed<DateToken | null>(() => {
+  const token = activeToken.value
+  const match = token.text.match(/^(from|to):(.*)$/i)
+
+  if (!match) {
+    return null
   }
 
-  const trimmedSearch = props.modelValue.trim().toLowerCase()
-  return trimmedSearch.includes(' ') ? '' : trimmedSearch
+  return {
+    ...token,
+    operator: match[1].toLowerCase() as 'from' | 'to',
+    dateValue: match[2],
+  }
 })
 
-const tagSuggestions = computed(() => {
-  const selectedNames = new Set(props.selectedTags.map((tag) => tag.name))
-  const needle = tagNeedle.value
+const activeAutocompleteMode = computed<AutocompleteMode | null>(() => {
+  const token = activeToken.value.text
 
-  return props.availableTags
-    .filter((tag) => !selectedNames.has(tag.name))
-    .filter((tag) => needle.length === 0 || tag.name.includes(needle))
-    .slice(0, 6)
+  if (activeDateToken.value) {
+    return null
+  }
+
+  if (token.startsWith('#')) {
+    return 'tag'
+  }
+
+  if (token.trim().length > 0 && !token.includes(':')) {
+    return 'keyword'
+  }
+
+  return null
 })
 
-const showTagSuggestions = computed(
-  () => isTagMenuOpen.value && tagSuggestions.value.length > 0,
+const showAutocomplete = computed(
+  () =>
+    isSearchFocused.value &&
+    !isAutocompleteDismissed.value &&
+    activeAutocompleteMode.value !== null &&
+    autocompleteSuggestions.value.length > 0,
 )
+
+const showDatePicker = computed(() => isSearchFocused.value && activeDateToken.value !== null)
+
+const dateInputValue = computed(() => {
+  const dateValue = activeDateToken.value?.dateValue ?? ''
+  return /^\d{4}-\d{2}-\d{2}$/.test(dateValue) ? dateValue : ''
+})
+
+const activeDescendantId = computed(() => {
+  if (!showAutocomplete.value) {
+    return undefined
+  }
+
+  return `search-suggestion-${autocompleteSuggestions.value[activeSuggestionIndex.value]?.id}`
+})
+
+watch(
+  () => [props.modelValue, props.availableTags, props.selectedTags, caretIndex.value] as const,
+  () => {
+    void refreshAutocomplete()
+  },
+  { immediate: true },
+)
+
+watch(autocompleteSuggestions, () => {
+  activeSuggestionIndex.value = 0
+})
 
 function updateSearch(value: string) {
   emit('update:modelValue', value)
-  isTagMenuOpen.value = true
+  isAutocompleteDismissed.value = false
   emit('search')
 }
 
 function onSearchInput(event: Event) {
-  updateSearch((event.target as HTMLInputElement).value)
+  const input = event.target as HTMLInputElement
+  caretIndex.value = input.selectionStart ?? input.value.length
+  updateSearch(input.value)
 }
 
 function selectTag(tag: TagResponse) {
-  emit('update:modelValue', withoutCompletedTagToken(tag.name))
+  emit('update:modelValue', withoutCompletedToken())
   emit('select-tag', tag)
-  isTagMenuOpen.value = false
+  isAutocompleteDismissed.value = true
   void nextTick(() => searchInput.value?.focus())
 }
 
@@ -68,11 +138,23 @@ function removeTag(name: string) {
 }
 
 function onSearchKeydown(event: KeyboardEvent) {
-  const firstSuggestion = tagSuggestions.value[0]
-
-  if (event.key === 'Enter' && firstSuggestion) {
+  if (showAutocomplete.value && event.key === 'ArrowDown') {
     event.preventDefault()
-    selectTag(firstSuggestion)
+    activeSuggestionIndex.value = (activeSuggestionIndex.value + 1) % autocompleteSuggestions.value.length
+    return
+  }
+
+  if (showAutocomplete.value && event.key === 'ArrowUp') {
+    event.preventDefault()
+    activeSuggestionIndex.value =
+      (activeSuggestionIndex.value - 1 + autocompleteSuggestions.value.length) %
+      autocompleteSuggestions.value.length
+    return
+  }
+
+  if (showAutocomplete.value && event.key === 'Enter') {
+    event.preventDefault()
+    selectSuggestion(autocompleteSuggestions.value[activeSuggestionIndex.value])
     return
   }
 
@@ -82,30 +164,144 @@ function onSearchKeydown(event: KeyboardEvent) {
   }
 
   if (event.key === 'Escape') {
-    isTagMenuOpen.value = false
+    if (showDatePicker.value) {
+      blurSearch()
+      return
+    }
+
+    isAutocompleteDismissed.value = true
   }
 }
 
-function withoutCompletedTagToken(tagName: string) {
-  const hashToken = /(?:^|\s)#[a-z0-9-]*$/i
+function onFocusIn() {
+  isSearchFocused.value = true
+}
 
-  if (hashToken.test(props.modelValue)) {
-    return props.modelValue.replace(hashToken, '').trimEnd()
+function onFocusOut(event: FocusEvent) {
+  const nextTarget = event.relatedTarget
+
+  if (nextTarget instanceof Node && rootElement.value?.contains(nextTarget)) {
+    return
   }
 
-  if (props.modelValue.trim().toLowerCase() === tagName) {
-    return ''
+  isSearchFocused.value = false
+  isAutocompleteDismissed.value = true
+}
+
+function blurSearch() {
+  searchInput.value?.blur()
+  isSearchFocused.value = false
+  isAutocompleteDismissed.value = true
+}
+
+function updateCaret(event: Event) {
+  const input = event.target as HTMLInputElement
+  caretIndex.value = input.selectionStart ?? input.value.length
+
+  if (event instanceof KeyboardEvent && ['ArrowDown', 'ArrowUp', 'Enter', 'Escape'].includes(event.key)) {
+    return
   }
 
-  return props.modelValue
+  isAutocompleteDismissed.value = false
+}
+
+function selectSuggestion(suggestion: SearchSuggestionResponse | undefined) {
+  if (!suggestion) {
+    return
+  }
+
+  if (suggestion.type === 'tag') {
+    if (suggestion.tag) {
+      selectTag(suggestion.tag)
+    }
+
+    return
+  }
+
+  replaceCompletedToken(suggestion.value)
+  isAutocompleteDismissed.value = true
+  emit('search')
+  void nextTick(() => searchInput.value?.focus())
+}
+
+function selectDate(event: Event) {
+  const value = (event.target as HTMLInputElement).value
+
+  if (!value || !activeDateToken.value) {
+    return
+  }
+
+  replaceCompletedToken(`${activeDateToken.value.operator}:${value}`)
+  emit('search')
+  void nextTick(() => searchInput.value?.focus())
+}
+
+async function refreshAutocomplete() {
+  const mode = activeAutocompleteMode.value
+
+  if (!mode) {
+    autocompleteSuggestions.value = []
+    return
+  }
+
+  autocompleteSuggestions.value =
+    mode === 'tag'
+      ? await getSearchTagSuggestions(activeToken.value.text.slice(1), props.availableTags, props.selectedTags)
+      : await getSearchKeywordSuggestions(activeToken.value.text)
+}
+
+function getActiveToken(value: string, cursorPosition: number): ActiveToken {
+  const cursor = Math.min(Math.max(cursorPosition, 0), value.length)
+  const tokenStart = value.lastIndexOf(' ', Math.max(0, cursor - 1)) + 1
+  const nextSpace = value.indexOf(' ', cursor)
+  const tokenEnd = nextSpace === -1 ? value.length : nextSpace
+
+  return {
+    start: tokenStart,
+    end: tokenEnd,
+    text: value.slice(tokenStart, tokenEnd),
+  }
+}
+
+function withoutCompletedToken() {
+  const token = activeToken.value
+  const nextValue = `${props.modelValue.slice(0, token.start)}${props.modelValue.slice(token.end)}`.replace(
+    /\s{2,}/g,
+    ' ',
+  )
+
+  return nextValue.trim()
+}
+
+function replaceCompletedToken(replacement: string) {
+  const token = activeToken.value
+  const prefix = props.modelValue.slice(0, token.start)
+  const suffix = props.modelValue.slice(token.end)
+  const nextValue = `${prefix}${replacement}${suffix}`
+
+  emit('update:modelValue', nextValue)
+  caretIndex.value = token.start + replacement.length
 }
 </script>
 
 <template>
-  <div class="relative mx-auto w-full max-w-3xl">
+  <div
+    ref="rootElement"
+    class="relative mx-auto w-full max-w-3xl"
+    :class="isSearchFocused ? 'z-50' : ''"
+    @focusin="onFocusIn"
+    @focusout="onFocusOut"
+  >
+    <div
+      v-if="isSearchFocused"
+      class="fixed inset-0 z-40 bg-ink-950/45 backdrop-blur-md"
+      aria-hidden="true"
+      @mousedown.prevent="blurSearch"
+    />
+
     <label class="sr-only" for="post-search">Search posts</label>
     <div
-      class="glass-panel relative flex min-h-13 w-full flex-wrap items-center gap-2 rounded-xl py-2.5 pl-12 pr-3 transition duration-200 focus-within:border-brass-200/45 focus-within:bg-ink-900/90"
+      class="glass-panel relative z-50 flex min-h-13 w-full flex-wrap items-center gap-2 rounded-xl py-2.5 pl-12 pr-3 transition duration-200 focus-within:border-brass-200/45 focus-within:bg-ink-900/90"
       :class="isSearchFocused ? 'shadow-[0_14px_38px_rgba(0,0,0,0.35)]' : ''"
     >
       <Search class="pointer-events-none absolute left-4 top-4 h-5 w-5 text-brass-100/80" />
@@ -127,15 +323,18 @@ function withoutCompletedTagToken(tagName: string) {
         ref="searchInput"
         :value="modelValue"
         type="search"
-        :placeholder="selectedTags.length > 0 ? 'Search selected notes' : 'Search notes or type #tag'"
+        placeholder="Search posts..."
+        role="combobox"
         class="min-h-8 min-w-40 flex-1 border-0 bg-transparent p-0 text-sm font-semibold text-mist-50 outline-none placeholder:text-mist-300/75"
         autocomplete="off"
         aria-autocomplete="list"
-        :aria-expanded="showTagSuggestions"
-        aria-controls="tag-suggestions"
-        @focus="isTagMenuOpen = true; isSearchFocused = true"
-        @blur="isTagMenuOpen = false; isSearchFocused = false"
+        :aria-expanded="showAutocomplete || showDatePicker"
+        :aria-activedescendant="activeDescendantId"
+        aria-controls="search-autocomplete"
+        @focus="updateCaret"
         @input="onSearchInput"
+        @click="updateCaret"
+        @keyup="updateCaret"
         @keydown="onSearchKeydown"
       />
 
@@ -145,25 +344,47 @@ function withoutCompletedTagToken(tagName: string) {
     </div>
 
     <div
-      v-if="showTagSuggestions"
-      id="tag-suggestions"
+      v-if="showAutocomplete"
+      id="search-autocomplete"
       role="listbox"
-      class="glass-panel absolute left-0 right-0 z-30 mt-2 overflow-hidden rounded-xl p-1"
+      class="glass-panel absolute left-0 right-0 z-50 mt-2 overflow-hidden rounded-xl p-1"
     >
       <button
-        v-for="tag in tagSuggestions"
-        :key="tag.id"
+        v-for="(suggestion, index) in autocompleteSuggestions"
+        :id="`search-suggestion-${suggestion.id}`"
+        :key="suggestion.id"
         type="button"
         role="option"
+        :aria-selected="index === activeSuggestionIndex"
         class="flex min-h-11 w-full items-center justify-between gap-3 rounded-lg px-4 py-3 text-left text-sm font-semibold text-mist-100 transition hover:bg-mist-50/8 hover:text-brass-100"
-        @mousedown.prevent="selectTag(tag)"
+        :class="index === activeSuggestionIndex ? 'bg-mist-50/8 text-brass-100' : ''"
+        @mousedown.prevent="selectSuggestion(suggestion)"
       >
         <span class="inline-flex items-center gap-2">
-          <Hash class="h-4 w-4 text-brass-200" />
-          {{ tag.name }}
+          <Hash v-if="suggestion.type === 'tag'" class="h-4 w-4 text-brass-200" />
+          <Search v-else class="h-4 w-4 text-brass-200" />
+          {{ suggestion.label }}
         </span>
-        <span class="text-[0.65rem] uppercase tracking-[0.22em] text-mist-300">Tag</span>
+        <span class="text-[0.65rem] uppercase tracking-[0.22em] text-mist-300">
+          {{ suggestion.type === 'tag' ? 'Tag' : 'Keyword' }}
+        </span>
       </button>
+    </div>
+
+    <div
+      v-if="showDatePicker"
+      class="glass-panel absolute left-0 right-0 z-50 mt-2 grid gap-3 rounded-xl p-4 sm:left-auto sm:w-80"
+    >
+      <label class="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-mist-300">
+        <Calendar class="h-4 w-4 text-brass-200" />
+        {{ activeDateToken?.operator === 'from' ? 'From date' : 'To date' }}
+      </label>
+      <input
+        type="date"
+        :value="dateInputValue"
+        class="min-h-11 rounded-lg border border-mist-50/10 bg-ink-950/60 px-3 text-sm font-semibold text-mist-50 outline-none"
+        @input="selectDate"
+      />
     </div>
   </div>
 </template>
