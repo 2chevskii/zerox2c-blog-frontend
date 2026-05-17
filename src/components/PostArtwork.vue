@@ -1,35 +1,38 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { Code2 } from '@lucide/vue'
-import { imageUrl } from '@/utils/images'
+import { computed } from "vue";
+import { Code2 } from "@lucide/vue";
+import { imageUrl } from "@/utils/images";
 
-const props = withDefaults(defineProps<{
-  imageId: string | null
-  title: string
-  large?: boolean
-  compact?: boolean
-  square?: boolean
-  priority?: boolean
-}>(), {
-  large: false,
-  compact: false,
-  square: false,
-  priority: false,
-})
+const props = withDefaults(
+  defineProps<{
+    imageId: string | null;
+    title: string;
+    large?: boolean;
+    compact?: boolean;
+    square?: boolean;
+    priority?: boolean;
+  }>(),
+  {
+    large: false,
+    compact: false,
+    square: false,
+    priority: false,
+  },
+);
 
-const src = computed(() => imageUrl(props.imageId))
+const src = computed(() => imageUrl(props.imageId));
 const aspectClass = computed(() => {
   if (props.square) {
-    return 'aspect-square'
+    return "aspect-square";
   }
 
   if (props.compact) {
-    return 'aspect-[2/1]'
+    return "aspect-[2/1]";
   }
 
-  return props.large ? 'aspect-[16/9]' : 'aspect-[5/3]'
-})
-const loadingMode = computed(() => props.priority ? 'eager' : 'lazy')
+  return props.large ? "aspect-[16/9]" : "aspect-[5/3]";
+});
+const loadingMode = computed(() => (props.priority ? "eager" : "lazy"));
 </script>
 
 <template>
@@ -48,7 +51,12 @@ const loadingMode = computed(() => props.priority ? 'eager' : 'lazy')
     >
       <Code2 class="h-10 w-10 text-brass-100/80" :stroke-width="1.5" />
     </div>
-    <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink-950/68 via-ink-950/5 to-transparent" />
-    <div v-if="!compact" class="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-mist-50/18" />
+    <div
+      class="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink-950/68 via-ink-950/5 to-transparent"
+    />
+    <div
+      v-if="!compact"
+      class="pointer-events-none absolute inset-x-0 bottom-0 h-px"
+    />
   </div>
 </template>
