@@ -4,6 +4,36 @@ export interface TagResponse {
   description: string | null
 }
 
+export type UserRole = 'User' | 'Admin' | 'SuperAdmin'
+
+export interface AuthResponse {
+  userId: string
+  username: string
+  email: string
+  accessToken: string
+  expiresAt: string
+  role: UserRole
+}
+
+export interface CurrentUserResponse {
+  userId: string
+  username: string
+  email: string
+  isBlocked: boolean
+  role: UserRole
+}
+
+export interface LoginRequest {
+  login: string
+  password: string
+}
+
+export interface RegisterUserRequest {
+  username: string
+  email: string
+  password: string
+}
+
 export interface PostListItemResponse {
   id: string
   slug: string | null
