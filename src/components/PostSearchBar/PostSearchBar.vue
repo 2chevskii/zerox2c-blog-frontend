@@ -41,15 +41,13 @@ const {
 </script>
 
 <template>
-  <Teleport to="body">
-    <button
-      v-if="isSearchFocused"
-      type="button"
-      class="fixed inset-0 z-30 cursor-default border-0 bg-ink-950/5 p-0 backdrop-blur-[4px] focus-visible:outline-none"
-      aria-label="Close search"
-      @mousedown.prevent="blurSearch"
-    />
-  </Teleport>
+  <button
+    v-if="isSearchFocused"
+    type="button"
+    class="fixed inset-0 z-30 cursor-default border-0 bg-ink-950/5 p-0 backdrop-blur-[4px] focus-visible:outline-none"
+    aria-label="Close search"
+    @mousedown.prevent="blurSearch"
+  />
 
   <div
     ref="rootElement"
