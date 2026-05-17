@@ -60,7 +60,7 @@ function updateDateFilters(dateFilters: PostSearchDateFilter[]) {
 
 <template>
   <main class="mx-auto grid w-full max-w-7xl gap-5 px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
-    <section class="sticky top-0 z-40 -mx-4 bg-[#1d1d1d]/92 px-4 py-4 backdrop-blur-xl sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+    <section class="sticky top-[4.25rem] z-40 -mx-4 bg-[#1d1d1d]/92 px-4 py-4 backdrop-blur-xl sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
       <PostSearchBar
         v-model="searchModel"
         :selected-tags="selectedTags"

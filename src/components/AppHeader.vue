@@ -13,8 +13,15 @@ async function logout() {
 </script>
 
 <template>
-  <header class="sticky top-0 z-50">
-    <div class="mx-auto flex w-full max-w-7xl justify-end px-4 py-3 sm:px-6 lg:px-8">
+  <header class="site-header sticky top-0 z-50">
+    <div class="header-backdrop" aria-hidden="true">
+      <span />
+      <span />
+      <span />
+      <span />
+    </div>
+
+    <div class="relative z-10 mx-auto flex w-full max-w-7xl justify-end px-4 py-3 sm:px-6 lg:px-8">
       <nav class="flex shrink-0 items-center gap-2" aria-label="Account navigation">
         <template v-if="auth.isAuthenticated">
           <div class="hidden min-w-0 items-center gap-2 rounded-full border border-mist-50/10 bg-mist-50/6 px-3 py-2 sm:flex">
@@ -61,3 +68,49 @@ async function logout() {
     </div>
   </header>
 </template>
+
+<style scoped>
+.site-header {
+  position: sticky;
+}
+
+.header-backdrop,
+.header-backdrop > span {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.header-backdrop {
+  z-index: 0;
+  overflow: hidden;
+}
+
+.header-backdrop > span:nth-child(1) {
+  -webkit-backdrop-filter: blur(2px) saturate(1.04);
+  backdrop-filter: blur(2px) saturate(1.04);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.8) 48%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.8) 48%, transparent 100%);
+}
+
+.header-backdrop > span:nth-child(2) {
+  -webkit-backdrop-filter: blur(6px) saturate(1.08);
+  backdrop-filter: blur(6px) saturate(1.08);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.75) 34%, transparent 78%);
+  mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.75) 34%, transparent 78%);
+}
+
+.header-backdrop > span:nth-child(3) {
+  -webkit-backdrop-filter: blur(12px) saturate(1.12);
+  backdrop-filter: blur(12px) saturate(1.12);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.72) 20%, transparent 58%);
+  mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.72) 20%, transparent 58%);
+}
+
+.header-backdrop > span:nth-child(4) {
+  -webkit-backdrop-filter: blur(22px) saturate(1.16);
+  backdrop-filter: blur(22px) saturate(1.16);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 34%);
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 34%);
+}
+</style>
