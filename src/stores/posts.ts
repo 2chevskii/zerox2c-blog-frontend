@@ -1,11 +1,19 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { ApiError } from '@/api/http'
-import { getPublishedPost, getPublishedPosts } from '@/api/posts'
+import {
+  clearPostReaction,
+  getPostReaction,
+  getPublishedPost,
+  getPublishedPosts,
+  setPostReaction,
+} from '@/api/posts'
 import { getPublishedTags } from '@/api/tags'
 import type {
   PostDetailsResponse,
   PostListItemResponse,
+  PostReactionResponse,
+  PostReactionType,
   PostSearchDateFilter,
   TagResponse,
 } from '@/types/api'
@@ -24,9 +32,13 @@ export const usePostsStore = defineStore('posts', () => {
   const hasMore = ref(true)
   const listError = ref<string | null>(null)
   const postError = ref<string | null>(null)
+  const reactionError = ref<string | null>(null)
   const isLoadingList = ref(false)
   const isLoadingMore = ref(false)
   const isLoadingPost = ref(false)
+  const isLoadingReaction = ref(false)
+  const isUpdatingReaction = ref(false)
+  const selectedPostReaction = ref<PostReactionType | null>(null)
   let listRequestId = 0
 
   const selectedTagNames = computed(() => selectedTags.value.map((tag) => tag.name))
@@ -82,7 +94,9 @@ export const usePostsStore = defineStore('posts', () => {
 
   async function fetchPost(slugOrId: string) {
     selectedPost.value = null
+    selectedPostReaction.value = null
     postError.value = null
+    reactionError.value = null
     isLoadingPost.value = true
 
     try {
@@ -91,6 +105,35 @@ export const usePostsStore = defineStore('posts', () => {
       postError.value = getPostErrorMessage(error)
     } finally {
       isLoadingPost.value = false
+    }
+  }
+
+  async function fetchPostReaction(postId: string) {
+    reactionError.value = null
+    isLoadingReaction.value = true
+
+    try {
+      applyReactionResponse(await getPostReaction(postId))
+    } catch (error) {
+      reactionError.value = getReactionErrorMessage(error)
+    } finally {
+      isLoadingReaction.value = false
+    }
+  }
+
+  async function updatePostReaction(postId: string, reaction: PostReactionType) {
+    reactionError.value = null
+    isUpdatingReaction.value = true
+
+    try {
+      const response = selectedPostReaction.value === reaction
+        ? await clearPostReaction(postId)
+        : await setPostReaction(postId, reaction)
+      applyReactionResponse(response)
+    } catch (error) {
+      reactionError.value = getReactionErrorMessage(error)
+    } finally {
+      isUpdatingReaction.value = false
     }
   }
 
@@ -121,9 +164,36 @@ export const usePostsStore = defineStore('posts', () => {
     publishedTo.value = dateFilters.find((dateFilter) => dateFilter.operator === 'to')?.dateValue
   }
 
+  function clearSelectedPostReaction() {
+    selectedPostReaction.value = null
+    reactionError.value = null
+  }
+
   function appendUniquePosts(page: PostListItemResponse[]) {
     const seenIds = new Set(posts.value.map((post) => post.id))
     posts.value = [...posts.value, ...page.filter((post) => !seenIds.has(post.id))]
+  }
+
+  function applyReactionResponse(response: PostReactionResponse) {
+    selectedPostReaction.value = response.currentUserReaction
+
+    if (selectedPost.value?.id === response.postId) {
+      selectedPost.value = {
+        ...selectedPost.value,
+        likeCount: response.likeCount,
+        dislikeCount: response.dislikeCount,
+      }
+    }
+
+    posts.value = posts.value.map((post) =>
+      post.id === response.postId
+        ? {
+            ...post,
+            likeCount: response.likeCount,
+            dislikeCount: response.dislikeCount,
+          }
+        : post,
+    )
   }
 
   return {
@@ -135,16 +205,23 @@ export const usePostsStore = defineStore('posts', () => {
     hasMore,
     listError,
     postError,
+    reactionError,
     isLoadingList,
     isLoadingMore,
     isLoadingPost,
+    isLoadingReaction,
+    isUpdatingReaction,
+    selectedPostReaction,
     fetchPosts,
     fetchPost,
+    fetchPostReaction,
+    updatePostReaction,
     fetchTags,
     setSearch,
     addTag,
     removeTag,
     setDateFilters,
+    clearSelectedPostReaction,
   }
 })
 
@@ -152,4 +229,18 @@ function getPostErrorMessage(error: unknown) {
   return error instanceof ApiError && error.status === 404
     ? 'Post not found.'
     : 'Could not load this post. Check that the backend API is running.'
+}
+
+function getReactionErrorMessage(error: unknown) {
+  if (error instanceof ApiError) {
+    if (error.status === 401) {
+      return 'Sign in to react to posts.'
+    }
+
+    if (error.status === 403) {
+      return 'This account cannot react to posts.'
+    }
+  }
+
+  return 'Could not update this reaction.'
 }

@@ -54,6 +54,19 @@ export interface PostDetailsResponse extends PostListItemResponse {
   readingMinutes: number
 }
 
+export type PostReactionType = 'Like' | 'Dislike'
+
+export interface PostReactionRequest {
+  reaction: PostReactionType
+}
+
+export interface PostReactionResponse {
+  postId: string
+  likeCount: number
+  dislikeCount: number
+  currentUserReaction: PostReactionType | null
+}
+
 export type PostSearchDateOperator = 'from' | 'to'
 
 export interface PostSearchDateFilter {

@@ -2,18 +2,34 @@
 import { computed, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { RouterLink, useRoute } from 'vue-router'
-import { ArrowLeft, CalendarDays, Clock } from '@lucide/vue'
+import { ArrowLeft, CalendarDays, Clock, ThumbsDown, ThumbsUp } from '@lucide/vue'
 import { useTitle } from '@vueuse/core'
 import ErrorNotice from '@/components/ErrorNotice.vue'
 import LoadingState from '@/components/LoadingState.vue'
 import PostArtwork from '@/components/PostArtwork.vue'
 import TagPill from '@/components/TagPill.vue'
+import { useAuthStore } from '@/stores/auth'
 import { usePostsStore } from '@/stores/posts'
+import type { PostReactionType } from '@/types/api'
 import { formatLongDate } from '@/utils/dates'
 
 const route = useRoute()
+const auth = useAuthStore()
 const postsStore = usePostsStore()
-const { selectedPost, postError, isLoadingPost } = storeToRefs(postsStore)
+const {
+  selectedPost,
+  postError,
+  reactionError,
+  isLoadingPost,
+  isLoadingReaction,
+  isUpdatingReaction,
+  selectedPostReaction,
+} = storeToRefs(postsStore)
+
+const countFormatter = new Intl.NumberFormat('en', {
+  notation: 'compact',
+  maximumFractionDigits: 1,
+})
 
 const slugOrId = computed(() => String(route.params.slug ?? ''))
 const articleHtml = computed(() => selectedPost.value?.bodyHtml ?? '')
@@ -34,6 +50,43 @@ watch(
   },
   { immediate: true },
 )
+
+watch(
+  [() => selectedPost.value?.id, () => auth.isAuthenticated],
+  ([postId, isAuthenticated]) => {
+    if (postId && isAuthenticated) {
+      void postsStore.fetchPostReaction(postId)
+      return
+    }
+
+    postsStore.clearSelectedPostReaction()
+  },
+)
+
+function formatCount(value: number | null | undefined) {
+  return countFormatter.format(value ?? 0)
+}
+
+function isSelectedReaction(reaction: PostReactionType) {
+  return selectedPostReaction.value === reaction
+}
+
+function reactionButtonClass(reaction: PostReactionType) {
+  return [
+    'inline-flex min-h-11 items-center gap-2 rounded-xl border px-4 py-2 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-60',
+    isSelectedReaction(reaction)
+      ? 'border-brass-200/70 bg-brass-200/16 text-brass-100'
+      : 'border-mist-50/10 bg-mist-50/6 text-mist-100 hover:border-brass-200/45 hover:bg-brass-200/10 hover:text-brass-100',
+  ]
+}
+
+function updateReaction(reaction: PostReactionType) {
+  if (!selectedPost.value || !auth.isAuthenticated || isUpdatingReaction.value) {
+    return
+  }
+
+  void postsStore.updatePostReaction(selectedPost.value.id, reaction)
+}
 </script>
 
 <template>
@@ -73,6 +126,50 @@ watch(
           <div v-if="selectedPost.tags.length > 0" class="flex flex-wrap gap-2">
             <TagPill v-for="tag in selectedPost.tags" :key="tag.id" :name="tag.name" accent />
           </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3">
+          <template v-if="auth.isAuthenticated">
+            <button
+              type="button"
+              :class="reactionButtonClass('Like')"
+              :aria-pressed="isSelectedReaction('Like')"
+              :disabled="isLoadingReaction || isUpdatingReaction"
+              @click="updateReaction('Like')"
+            >
+              <ThumbsUp class="h-4 w-4" :stroke-width="1.9" />
+              {{ formatCount(selectedPost.likeCount) }}
+            </button>
+            <button
+              type="button"
+              :class="reactionButtonClass('Dislike')"
+              :aria-pressed="isSelectedReaction('Dislike')"
+              :disabled="isLoadingReaction || isUpdatingReaction"
+              @click="updateReaction('Dislike')"
+            >
+              <ThumbsDown class="h-4 w-4" :stroke-width="1.9" />
+              {{ formatCount(selectedPost.dislikeCount) }}
+            </button>
+          </template>
+          <template v-else>
+            <span class="inline-flex min-h-11 items-center gap-2 rounded-xl border border-mist-50/10 bg-mist-50/6 px-4 py-2 text-sm font-bold text-mist-100">
+              <ThumbsUp class="h-4 w-4 text-mist-300" :stroke-width="1.9" />
+              {{ formatCount(selectedPost.likeCount) }}
+            </span>
+            <span class="inline-flex min-h-11 items-center gap-2 rounded-xl border border-mist-50/10 bg-mist-50/6 px-4 py-2 text-sm font-bold text-mist-100">
+              <ThumbsDown class="h-4 w-4 text-mist-300" :stroke-width="1.9" />
+              {{ formatCount(selectedPost.dislikeCount) }}
+            </span>
+            <RouterLink
+              to="/auth"
+              class="inline-flex min-h-11 items-center rounded-xl border border-brass-200/35 bg-brass-200/10 px-4 py-2 text-sm font-bold text-brass-100 transition hover:border-brass-200/60 hover:bg-brass-200/16"
+            >
+              Sign in to react
+            </RouterLink>
+          </template>
+          <p v-if="reactionError" class="text-sm font-semibold text-red-200">
+            {{ reactionError }}
+          </p>
         </div>
       </header>
 
