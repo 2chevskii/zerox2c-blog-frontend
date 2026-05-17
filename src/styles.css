@@ -156,7 +156,6 @@ input:focus-visible {
     filter 220ms ease;
 }
 
-.page-forward-leave-active,
 .page-back-leave-active {
   position: absolute;
   inset: 0;
@@ -179,9 +178,9 @@ input:focus-visible {
 }
 
 .page-forward-leave-to {
-  opacity: 0.55;
-  filter: blur(4px);
-  transform: translate3d(-0.35rem, 0, 0) scale(0.982);
+  opacity: 0;
+  filter: blur(3px);
+  transform: translate3d(-0.5rem, 0, 0) scale(0.99);
 }
 
 .page-back-enter-from {

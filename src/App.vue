@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { onMounted } from "vue";
+import { computed, onMounted } from "vue";
 import AppHeader from "@/components/AppHeader.vue";
 import { routeTransitionName } from "@/router";
 import { useAuthStore } from "@/stores/auth";
 
 const auth = useAuthStore();
+const routeTransitionMode = computed(() => (
+  routeTransitionName.value === "page-forward" ? "out-in" : undefined
+));
 
 onMounted(() => {
   if (!auth.isAuthenticated) {
@@ -22,7 +25,7 @@ onMounted(() => {
     <AppHeader />
     <RouterView v-slot="{ Component, route }">
       <div class="page-transition-host">
-        <Transition :name="routeTransitionName">
+        <Transition :name="routeTransitionName" :mode="routeTransitionMode">
           <component :is="Component" :key="route.fullPath" class="page-transition-view" />
         </Transition>
       </div>
