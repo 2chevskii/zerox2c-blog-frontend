@@ -445,3 +445,10 @@ function setDateFilter(operator: DateFilter['operator'], dateValue: string) {
     </div>
   </div>
 </template>
+
+<style scoped>
+#post-search:focus,
+#post-search:focus-visible {
+  outline: none;
+}
+</style>
