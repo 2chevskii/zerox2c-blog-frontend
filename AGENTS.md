@@ -36,10 +36,12 @@ Agents may inspect and modify any of these three sibling repositories when a tas
 
 ## Verification
 
-Before finishing implementation changes, run:
+Before finishing implementation changes that touch application code, build configuration, dependencies, generated assets, or other runtime-affecting files, run:
 
 ```powershell
 npm run build
 ```
+
+Documentation-only changes do not require a build.
 
 If you start a local dev server during verification, stop it before finishing unless the user explicitly asks to keep it running. Never leave Vite, preview, backend, watcher, or other long-running development processes running after the task is done.
