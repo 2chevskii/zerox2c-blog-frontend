@@ -29,6 +29,7 @@ const isAutocompleteDismissed = ref(false)
 const autocompleteSuggestions = ref<SearchSuggestionResponse[]>([])
 const activeSuggestionIndex = ref(0)
 const caretIndex = ref(0)
+const selectedDateFilters = ref<DateFilter[]>([])
 
 type AutocompleteMode = 'tag' | 'keyword'
 
@@ -39,6 +40,11 @@ interface ActiveToken {
 }
 
 interface DateToken extends ActiveToken {
+  operator: 'from' | 'to'
+  dateValue: string
+}
+
+interface DateFilter {
   operator: 'from' | 'to'
   dateValue: string
 }
@@ -137,7 +143,19 @@ function removeTag(name: string) {
   void nextTick(() => searchInput.value?.focus())
 }
 
+function removeDateFilter(operator: DateFilter['operator']) {
+  selectedDateFilters.value = selectedDateFilters.value.filter((dateFilter) => dateFilter.operator !== operator)
+  emit('search')
+  void nextTick(() => searchInput.value?.focus())
+}
+
 function onSearchKeydown(event: KeyboardEvent) {
+  if (showDatePicker.value && event.key === 'Enter' && isActiveDateComplete()) {
+    event.preventDefault()
+    commitActiveDateToken()
+    return
+  }
+
   if (showAutocomplete.value && event.key === 'ArrowDown') {
     event.preventDefault()
     activeSuggestionIndex.value = (activeSuggestionIndex.value + 1) % autocompleteSuggestions.value.length
@@ -231,7 +249,19 @@ function selectDate(event: Event) {
     return
   }
 
-  replaceCompletedToken(`${activeDateToken.value.operator}:${value}`)
+  setDateFilter(activeDateToken.value.operator, value)
+  emit('update:modelValue', withoutCompletedToken())
+  emit('search')
+  void nextTick(() => searchInput.value?.focus())
+}
+
+function commitActiveDateToken() {
+  if (!activeDateToken.value || !isActiveDateComplete()) {
+    return
+  }
+
+  setDateFilter(activeDateToken.value.operator, activeDateToken.value.dateValue)
+  emit('update:modelValue', withoutCompletedToken())
   emit('search')
   void nextTick(() => searchInput.value?.focus())
 }
@@ -282,9 +312,32 @@ function replaceCompletedToken(replacement: string) {
   emit('update:modelValue', nextValue)
   caretIndex.value = token.start + replacement.length
 }
+
+function isActiveDateComplete() {
+  return /^\d{4}-\d{2}-\d{2}$/.test(activeDateToken.value?.dateValue ?? '')
+}
+
+function setDateFilter(operator: DateFilter['operator'], dateValue: string) {
+  const dateFilterOrder: Record<DateFilter['operator'], number> = { from: 0, to: 1 }
+
+  selectedDateFilters.value = [
+    ...selectedDateFilters.value.filter((dateFilter) => dateFilter.operator !== operator),
+    { operator, dateValue },
+  ].sort((left, right) => dateFilterOrder[left.operator] - dateFilterOrder[right.operator])
+}
 </script>
 
 <template>
+  <Teleport to="body">
+    <button
+      v-if="isSearchFocused"
+      type="button"
+      class="fixed inset-0 z-30 cursor-default border-0 bg-ink-950/5 p-0 backdrop-blur-[4px] focus-visible:outline-none"
+      aria-label="Close search"
+      @mousedown.prevent="blurSearch"
+    />
+  </Teleport>
+
   <div
     ref="rootElement"
     class="relative mx-auto w-full max-w-3xl"
@@ -292,17 +345,9 @@ function replaceCompletedToken(replacement: string) {
     @focusin="onFocusIn"
     @focusout="onFocusOut"
   >
-    <div
-      v-if="isSearchFocused"
-      class="fixed inset-0 z-40 bg-ink-950/45 backdrop-blur-md"
-      aria-hidden="true"
-      @mousedown.prevent="blurSearch"
-    />
-
     <label class="sr-only" for="post-search">Search posts</label>
     <div
-      class="glass-panel relative z-50 flex min-h-13 w-full flex-wrap items-center gap-2 rounded-xl py-2.5 pl-12 pr-3 transition duration-200 focus-within:border-brass-200/45 focus-within:bg-ink-900/90"
-      :class="isSearchFocused ? 'shadow-[0_14px_38px_rgba(0,0,0,0.35)]' : ''"
+      class="glass-panel relative z-50 flex min-h-13 w-full flex-wrap items-center gap-1.5 rounded-xl py-2.5 pl-12 pr-3 transition duration-200"
     >
       <Search class="pointer-events-none absolute left-4 top-4 h-5 w-5 text-brass-100/80" />
 
@@ -310,12 +355,24 @@ function replaceCompletedToken(replacement: string) {
         v-for="tag in selectedTags"
         :key="tag.id"
         type="button"
-        class="inline-flex min-h-8 max-w-full items-center gap-2 rounded-lg border border-brass-200/32 bg-brass-200/12 px-2.5 py-1 text-xs font-bold uppercase tracking-[0.14em] text-brass-100 transition hover:border-brass-200/55 hover:bg-brass-200/15"
+        class="inline-flex min-h-6 max-w-full items-center gap-1.5 rounded-md border border-mist-50/10 bg-mist-50/7 px-2 py-0.5 text-[0.68rem] font-semibold text-mist-200 transition hover:border-mist-50/18 hover:bg-mist-50/10 hover:text-mist-50 focus-visible:outline-none"
         :title="`Remove ${tag.name}`"
         @click="removeTag(tag.name)"
       >
         <span class="truncate">{{ tag.name }}</span>
-        <X class="h-3.5 w-3.5" />
+        <X class="h-3 w-3" />
+      </button>
+
+      <button
+        v-for="dateFilter in selectedDateFilters"
+        :key="dateFilter.operator"
+        type="button"
+        class="inline-flex min-h-6 max-w-full items-center gap-1.5 rounded-md border border-mist-50/10 bg-mist-50/7 px-2 py-0.5 text-[0.68rem] font-semibold text-mist-200 transition hover:border-mist-50/18 hover:bg-mist-50/10 hover:text-mist-50 focus-visible:outline-none"
+        :title="`Remove ${dateFilter.operator}:${dateFilter.dateValue}`"
+        @click="removeDateFilter(dateFilter.operator)"
+      >
+        <span class="truncate">{{ dateFilter.operator }}:{{ dateFilter.dateValue }}</span>
+        <X class="h-3 w-3" />
       </button>
 
       <input
@@ -325,7 +382,7 @@ function replaceCompletedToken(replacement: string) {
         type="search"
         placeholder="Search posts..."
         role="combobox"
-        class="min-h-8 min-w-40 flex-1 border-0 bg-transparent p-0 text-sm font-semibold text-mist-50 outline-none placeholder:text-mist-300/75"
+        class="min-h-8 min-w-40 flex-1 border-0 bg-transparent p-0 text-sm font-semibold text-mist-50 outline-none placeholder:text-mist-300/75 focus-visible:outline-none"
         autocomplete="off"
         aria-autocomplete="list"
         :aria-expanded="showAutocomplete || showDatePicker"
@@ -382,7 +439,7 @@ function replaceCompletedToken(replacement: string) {
       <input
         type="date"
         :value="dateInputValue"
-        class="min-h-11 rounded-lg border border-mist-50/10 bg-ink-950/60 px-3 text-sm font-semibold text-mist-50 outline-none"
+        class="min-h-11 rounded-lg border border-mist-50/10 bg-ink-950/60 px-3 text-sm font-semibold text-mist-50 outline-none focus-visible:outline-none"
         @input="selectDate"
       />
     </div>
