@@ -9,9 +9,12 @@ export interface PostListItemResponse {
   slug: string | null
   title: string
   subtitle: string | null
-  excerpt: string | null
   coverImageId: string | null
   bannerImageId: string | null
+  likeCount: number
+  dislikeCount: number
+  commentCount: number
+  viewCount: number
   tags: TagResponse[]
   publishedAt: string | null
 }

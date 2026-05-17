@@ -5,7 +5,7 @@ import { getPublishedPost, getPublishedPosts } from '@/api/posts'
 import { getPublishedTags } from '@/api/tags'
 import type { PostDetailsResponse, PostListItemResponse, TagResponse } from '@/types/api'
 
-const pageSize = 9
+const PAGE_SIZE = 9
 
 export const usePostsStore = defineStore('posts', () => {
   const posts = ref<PostListItemResponse[]>([])
@@ -21,8 +21,7 @@ export const usePostsStore = defineStore('posts', () => {
   const isLoadingMore = ref(false)
   const isLoadingPost = ref(false)
 
-  const featuredPost = computed(() => posts.value[0] ?? null)
-  const remainingPosts = computed(() => posts.value.slice(1))
+  const selectedTagNames = computed(() => selectedTags.value.map((tag) => tag.name))
 
   async function fetchPosts(reset = false) {
     if (reset) {
@@ -43,15 +42,14 @@ export const usePostsStore = defineStore('posts', () => {
     try {
       const page = await getPublishedPosts({
         offset: offset.value,
-        limit: pageSize,
+        limit: PAGE_SIZE,
         search: search.value.trim() || undefined,
-        tags: selectedTags.value.map((tag) => tag.name),
+        tags: selectedTagNames.value,
       })
 
-      const seenIds = new Set(posts.value.map((post) => post.id))
-      posts.value = [...posts.value, ...page.filter((post) => !seenIds.has(post.id))]
+      appendUniquePosts(page)
       offset.value += page.length
-      hasMore.value = page.length === pageSize
+      hasMore.value = page.length === PAGE_SIZE
     } catch {
       listError.value = 'Could not load posts. Check that the backend API is running.'
     } finally {
@@ -68,17 +66,10 @@ export const usePostsStore = defineStore('posts', () => {
     try {
       selectedPost.value = await getPublishedPost(slugOrId)
     } catch (error) {
-      postError.value =
-        error instanceof ApiError && error.status === 404
-          ? 'Post not found.'
-          : 'Could not load this post. Check that the backend API is running.'
+      postError.value = getPostErrorMessage(error)
     } finally {
       isLoadingPost.value = false
     }
-  }
-
-  function setSearch(value: string) {
-    search.value = value
   }
 
   async function fetchTags() {
@@ -89,6 +80,10 @@ export const usePostsStore = defineStore('posts', () => {
     }
   }
 
+  function setSearch(value: string) {
+    search.value = value
+  }
+
   function addTag(tag: TagResponse) {
     if (!selectedTags.value.some((selectedTag) => selectedTag.name === tag.name)) {
       selectedTags.value = [...selectedTags.value, tag]
@@ -97,6 +92,11 @@ export const usePostsStore = defineStore('posts', () => {
 
   function removeTag(name: string) {
     selectedTags.value = selectedTags.value.filter((tag) => tag.name !== name)
+  }
+
+  function appendUniquePosts(page: PostListItemResponse[]) {
+    const seenIds = new Set(posts.value.map((post) => post.id))
+    posts.value = [...posts.value, ...page.filter((post) => !seenIds.has(post.id))]
   }
 
   return {
@@ -111,8 +111,6 @@ export const usePostsStore = defineStore('posts', () => {
     isLoadingList,
     isLoadingMore,
     isLoadingPost,
-    featuredPost,
-    remainingPosts,
     fetchPosts,
     fetchPost,
     fetchTags,
@@ -121,3 +119,9 @@ export const usePostsStore = defineStore('posts', () => {
     removeTag,
   }
 })
+
+function getPostErrorMessage(error: unknown) {
+  return error instanceof ApiError && error.status === 404
+    ? 'Post not found.'
+    : 'Could not load this post. Check that the backend API is running.'
+}

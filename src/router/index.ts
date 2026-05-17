@@ -5,8 +5,8 @@ import PostView from '@/views/PostView.vue'
 
 export const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  linkActiveClass: 'text-burgundy-100',
-  linkExactActiveClass: 'border-burgundy-300/50',
+  linkActiveClass: 'text-brass-100',
+  linkExactActiveClass: 'border-brass-300/60',
   routes: [
     {
       path: '/',

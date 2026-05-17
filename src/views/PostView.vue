@@ -37,48 +37,50 @@ watch(
 </script>
 
 <template>
-  <main class="mx-auto grid max-w-5xl gap-7 px-4 py-7 sm:px-6 sm:py-10 lg:px-8">
+  <main class="relative mx-auto grid max-w-6xl gap-7 px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
     <RouterLink
       to="/"
-      class="inline-flex w-fit items-center gap-2 rounded-sm border border-concrete-100/10 bg-concrete-900/70 px-3 py-2 text-xs font-black uppercase tracking-normal text-concrete-100 transition hover:border-burgundy-300/50 hover:text-burgundy-100"
+      class="inline-flex min-h-11 w-fit items-center gap-2 rounded-xl border border-mist-50/10 bg-mist-50/6 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-mist-100 transition hover:border-brass-200/45 hover:bg-brass-200/10 hover:text-brass-100"
     >
       <ArrowLeft class="h-4 w-4" />
-      Back
+      Back to notes
     </RouterLink>
 
     <LoadingState v-if="isLoadingPost" />
     <ErrorNotice v-else-if="postError" :message="postError" />
 
     <article v-else-if="selectedPost" class="grid gap-8">
-      <header class="grid gap-6">
-        <div class="flex flex-wrap items-center gap-3 text-xs font-bold uppercase tracking-normal text-concrete-300">
+      <header class="grid gap-6 pt-2">
+        <div class="flex flex-wrap items-center gap-3 text-xs font-bold uppercase tracking-[0.22em] text-mist-300">
           <span class="inline-flex items-center gap-2">
-            <CalendarDays class="h-4 w-4" :stroke-width="1.8" />
+            <CalendarDays class="h-4 w-4 text-brass-200" :stroke-width="1.8" />
             {{ formatLongDate(selectedPost.publishedAt) }}
           </span>
-          <span class="h-1 w-5 bg-cardboard-300/70" />
+          <span class="h-px w-8 bg-brass-300/70" />
           <span class="inline-flex items-center gap-2">
-            <Clock class="h-4 w-4" :stroke-width="1.8" />
+            <Clock class="h-4 w-4 text-brass-200" :stroke-width="1.8" />
             {{ readingMinutes }} min read
           </span>
         </div>
 
-        <div class="grid gap-4">
-          <h1 class="text-balance text-4xl font-black uppercase leading-[0.9] tracking-normal text-[#fff8ee] sm:text-6xl lg:text-7xl">
+        <div class="grid gap-5">
+          <h1 class="max-w-5xl text-balance font-display text-5xl font-bold leading-[0.9] tracking-[-0.075em] text-mist-50 sm:text-7xl lg:text-8xl">
             {{ selectedPost.title }}
           </h1>
-          <p v-if="selectedPost.subtitle" class="max-w-3xl border-l border-concrete-100/15 pl-4 text-pretty text-lg leading-8 text-concrete-100 sm:text-xl">
+          <p v-if="selectedPost.subtitle" class="max-w-3xl border-l border-brass-200/35 pl-5 text-pretty text-lg leading-8 text-mist-200 sm:text-xl">
             {{ selectedPost.subtitle }}
           </p>
           <div v-if="selectedPost.tags.length > 0" class="flex flex-wrap gap-2">
-            <TagPill v-for="tag in selectedPost.tags" :key="tag.id" :name="tag.name" />
+            <TagPill v-for="tag in selectedPost.tags" :key="tag.id" :name="tag.name" accent />
           </div>
         </div>
       </header>
 
-      <PostArtwork :image-id="imageId" :title="selectedPost.title" large class="rounded-sm border border-concrete-100/10" />
+      <PostArtwork :image-id="imageId" :title="selectedPost.title" large priority class="rounded-xl border border-mist-50/10" />
 
-      <div class="article-body" v-html="articleHtml" />
+      <section class="article-shell px-5 py-8 sm:px-8 sm:py-10 lg:px-12">
+        <div class="article-body mx-auto" v-html="articleHtml" />
+      </section>
     </article>
   </main>
 </template>

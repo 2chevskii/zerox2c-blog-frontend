@@ -8,12 +8,14 @@ defineProps<{
 </script>
 
 <template>
-  <div class="loft-panel grid place-items-center rounded-sm px-6 py-14 text-center sm:py-16">
-    <div class="grid max-w-md place-items-center gap-4">
-      <SearchX class="h-9 w-9 text-concrete-300" :stroke-width="1.5" />
+  <div class="surface-panel grid place-items-center rounded-xl px-6 py-14 text-center sm:py-16">
+    <div class="grid max-w-md place-items-center gap-5">
+      <span class="grid h-12 w-12 place-items-center rounded-xl border border-mist-50/12 bg-mist-50/7 text-brass-100">
+        <SearchX class="h-7 w-7" :stroke-width="1.6" />
+      </span>
       <div>
-        <h2 class="text-xl font-black uppercase tracking-normal text-[#fff8ee]">{{ title }}</h2>
-        <p class="mt-2 text-sm leading-6 text-concrete-300">{{ message }}</p>
+        <h2 class="font-display text-2xl font-bold tracking-[-0.04em] text-mist-50">{{ title }}</h2>
+        <p class="mt-3 text-sm leading-6 text-mist-300">{{ message }}</p>
       </div>
     </div>
   </div>

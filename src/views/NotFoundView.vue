@@ -7,6 +7,6 @@ useTitle('Not found | 0x2c.dev')
 
 <template>
   <main class="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
-    <EmptyState title="Not found" message="The page you requested does not exist." />
+    <EmptyState title="Not found" message="The page you requested does not exist. Return to the notes index to continue reading." />
   </main>
 </template>

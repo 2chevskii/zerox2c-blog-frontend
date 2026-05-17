@@ -1,12 +1,16 @@
 <script setup lang="ts">
-defineProps<{
+const props = withDefaults(defineProps<{
   name: string
-}>()
+  accent?: boolean
+}>(), {
+  accent: false,
+})
 </script>
 
 <template>
   <span
-    class="inline-flex h-7 items-center rounded-sm border border-concrete-100/15 bg-concrete-100/10 px-2.5 text-xs font-black uppercase tracking-normal text-concrete-100"
+    class="inline-flex min-h-7 items-center rounded-lg px-2.5 py-1 text-[0.68rem] font-bold uppercase tracking-[0.16em]"
+    :class="props.accent ? 'bg-[#303030] text-brass-100' : 'bg-[#303030] text-mist-200'"
   >
     {{ name }}
   </span>
