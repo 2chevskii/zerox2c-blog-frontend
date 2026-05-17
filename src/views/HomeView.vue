@@ -28,11 +28,6 @@ const searchModel = computed({
   get: () => search.value,
   set: (value: string) => postsStore.setSearch(value),
 })
-const hasActiveFilters = computed(
-  () => search.value.trim().length > 0 || selectedTags.value.length > 0,
-)
-const loadedNotesLabel = computed(() => `${posts.value.length} ${posts.value.length === 1 ? 'note' : 'notes'}`)
-const tagCountLabel = computed(() => `${availableTags.value.length} ${availableTags.value.length === 1 ? 'tag' : 'tags'}`)
 
 const debouncedSearch = useDebounceFn(() => fetchPostsFromStart(), 250)
 
@@ -71,21 +66,6 @@ function removeTag(name: string) {
         @select-tag="selectTag"
         @remove-tag="removeTag"
       />
-    </section>
-
-    <section class="flex flex-col gap-3 border-b border-mist-50/10 pb-5 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <p class="text-xs font-bold uppercase tracking-[0.22em] text-brass-100">
-          {{ hasActiveFilters ? 'Filtered archive' : 'Archive' }}
-        </p>
-        <h1 class="mt-1 font-display text-3xl font-bold tracking-[-0.05em] text-mist-50 sm:text-4xl">
-          Notes
-        </h1>
-      </div>
-      <div class="flex flex-wrap gap-2 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-mist-300">
-        <span class="rounded-xl border border-mist-50/10 bg-mist-50/6 px-3 py-2">{{ loadedNotesLabel }}</span>
-        <span class="rounded-xl border border-mist-50/10 bg-mist-50/6 px-3 py-2">{{ tagCountLabel }}</span>
-      </div>
     </section>
 
     <ErrorNotice v-if="listError" :message="listError" />
