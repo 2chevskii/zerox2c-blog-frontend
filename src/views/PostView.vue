@@ -113,7 +113,7 @@ function updateReaction(reaction: PostReactionType) {
 </script>
 
 <template>
-  <main class="relative mx-auto grid max-w-6xl gap-7 px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+  <main class="relative mx-auto grid max-w-5xl gap-7 px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
     <article
       v-if="isLoadingPost"
       class="grid animate-pulse gap-8"

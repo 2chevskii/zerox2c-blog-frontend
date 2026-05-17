@@ -104,7 +104,7 @@ function updateDateFilters(dateFilters: PostSearchDateFilter[]) {
       message="There are no published posts matching the current search."
     />
     <template v-else>
-      <PostMosaic :posts="posts" />
+      <PostMosaic :posts="posts" @select-tag="selectTag" />
 
       <div v-if="isLoadingMore" class="flex justify-center pt-4" aria-live="polite">
         <div

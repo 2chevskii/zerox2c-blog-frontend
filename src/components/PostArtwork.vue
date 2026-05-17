@@ -24,7 +24,7 @@ const aspectClass = computed(() => {
   }
 
   if (props.compact) {
-    return 'aspect-[3/1]'
+    return 'aspect-[2/1]'
   }
 
   return props.large ? 'aspect-[16/9]' : 'aspect-[5/3]'
@@ -48,6 +48,6 @@ const loadingMode = computed(() => props.priority ? 'eager' : 'lazy')
       <Code2 class="h-10 w-10 text-brass-100/80" :stroke-width="1.5" />
     </div>
     <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink-950/68 via-ink-950/5 to-transparent" />
-    <div class="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-mist-50/18" />
+    <div v-if="!compact" class="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-mist-50/18" />
   </div>
 </template>

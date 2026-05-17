@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { CalendarDays, Eye, MessageCircle, ThumbsDown, ThumbsUp } from '@lucide/vue'
 import PostArtwork from '@/components/PostArtwork.vue'
 import TagPill from '@/components/TagPill.vue'
-import type { PostListItemResponse } from '@/types/api'
+import type { PostListItemResponse, TagResponse } from '@/types/api'
 import { formatShortDate } from '@/utils/dates'
 
 type CountValue = number | null | undefined
@@ -17,6 +17,10 @@ const props = defineProps<{
   post: PostListItemResponse
 }>()
 
+const emit = defineEmits<{
+  selectTag: [tag: TagResponse]
+}>()
+
 const postUrl = computed(() => `/posts/${props.post.slug ?? props.post.id}`)
 const coverImageId = computed(() => props.post.coverImageId ?? props.post.bannerImageId)
 const visibleTags = computed(() => props.post.tags.slice(0, 4))
@@ -28,12 +32,14 @@ function formatCount(value: CountValue) {
 </script>
 
 <template>
-  <RouterLink
-    :to="postUrl"
-    class="group block h-full rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brass-200"
-    :aria-label="`Read ${post.title}`"
-  >
-    <article class="grid h-full gap-3 rounded-xl bg-transparent p-3 transition duration-200 group-hover:bg-[#252525] group-hover:shadow-[0_18px_48px_rgba(0,0,0,0.24)] sm:gap-4 sm:p-4 lg:p-5">
+  <article class="group relative grid h-full gap-3 rounded-xl bg-transparent p-3 transition duration-200 hover:bg-[#252525] hover:shadow-[0_18px_48px_rgba(0,0,0,0.24)] sm:gap-4 sm:p-4 lg:p-5">
+    <RouterLink
+      :to="postUrl"
+      class="absolute inset-0 z-0 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brass-200"
+      :aria-label="`Read ${post.title}`"
+    />
+
+    <div class="pointer-events-none relative z-10 grid gap-3 sm:gap-4">
       <PostArtwork
         :image-id="coverImageId"
         :title="post.title"
@@ -61,8 +67,17 @@ function formatCount(value: CountValue) {
           {{ post.subtitle }}
         </p>
 
-        <div v-if="visibleTags.length > 0" class="flex flex-wrap gap-2">
-          <TagPill v-for="tag in visibleTags" :key="tag.id" :name="tag.name" />
+        <div v-if="visibleTags.length > 0" class="pointer-events-auto flex flex-wrap gap-2">
+          <button
+            v-for="tag in visibleTags"
+            :key="tag.id"
+            type="button"
+            class="rounded-lg border-0 bg-transparent p-0 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass-200"
+            :title="`Filter by #${tag.name}`"
+            @click.stop="emit('selectTag', tag)"
+          >
+            <TagPill :name="tag.name" />
+          </button>
         </div>
 
         <div class="flex flex-wrap items-center gap-2 text-xs font-bold text-mist-100">
@@ -80,6 +95,6 @@ function formatCount(value: CountValue) {
           </span>
         </div>
       </div>
-    </article>
-  </RouterLink>
+    </div>
+  </article>
 </template>
