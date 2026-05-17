@@ -32,3 +32,4 @@ For deployments where the API is on another origin, set `VITE_API_BASE_URL`.
 ## Notes
 
 - Brand icon research is documented in `docs/brand-icons.md`.
+- Deployment process is documented in `docs/deployment.md`.
