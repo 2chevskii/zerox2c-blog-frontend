@@ -8,7 +8,7 @@ defineProps<{
 </script>
 
 <template>
-  <div class="surface-panel grid place-items-center rounded-xl px-6 py-14 text-center sm:py-16">
+  <div class="surface-panel mx-auto grid w-full max-w-2xl place-items-center rounded-xl px-6 py-14 text-center sm:py-16">
     <div class="grid max-w-md place-items-center gap-5">
       <span class="grid h-12 w-12 place-items-center rounded-xl border border-mist-50/12 bg-mist-50/7 text-brass-100">
         <SearchX class="h-7 w-7" :stroke-width="1.6" />

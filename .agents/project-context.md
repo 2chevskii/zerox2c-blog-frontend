@@ -55,6 +55,7 @@ Not implemented in this frontend yet:
 The backend lives at `../blog-backend`. Public frontend code currently uses:
 
 - `GET /api/posts` with `offset`, `limit`, `search`, comma-separated `tags`, inclusive `from`, and inclusive `to`.
+- `GET /api/posts/keywords` with `search` and `limit` for generated keyword suggestions.
 - `GET /api/posts/{slugOrId}`.
 - `GET /api/tags` with `offset`, `limit`, and `search`.
 - `GET /api/images/{id}`.
@@ -109,7 +110,7 @@ Supported syntax and interaction:
 - `Tab` accepts suggestions or confirms pill editing; raw tab navigation inside the active search control is intentionally suppressed.
 - Backspace/arrow-left at the start of the main input edits or removes pills before the text input.
 
-Search suggestions are local mocks in `src/api/search.ts` plus available tags fetched from the backend. If real backend search suggestions are added later, keep the same UI contract or update `useAutocomplete.ts` and `types.ts` together.
+Search keyword suggestions come from `GET /api/posts/keywords`, and tag suggestions come from available tags fetched from the backend. Keep the same UI contract or update `useAutocomplete.ts` and `types.ts` together.
 
 ## UI And Styling Rules
 
