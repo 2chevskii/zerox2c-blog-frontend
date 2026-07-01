@@ -1,0 +1,50 @@
+name: Build and publish Docker image
+
+on:
+  push:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  docker:
+    name: Build and publish Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Resolve image name
+        id: image
+        shell: bash
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          tag="sha-${GITHUB_SHA}"
+          echo "image=${image}" >> "${GITHUB_OUTPUT}"
+          echo "tag=${tag}" >> "${GITHUB_OUTPUT}"
+          echo "Resolved image: ${image}:${tag}"
+
+      - name: Build Docker image
+        env:
+          IMAGE: ${{ steps.image.outputs.image }}
+          TAG: ${{ steps.image.outputs.tag }}
+        run: |
+          docker build --target runtime --tag "${IMAGE}:${TAG}" .
+          docker image ls "${IMAGE}:${TAG}"
+
+      - name: Smoke test Docker image
+        env:
+          IMAGE: ${{ steps.image.outputs.image }}
+          TAG: ${{ steps.image.outputs.tag }}
+        shell: bash
+        run: bash scripts/smoke-docker-image.sh "${IMAGE}:${TAG}"
+
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.actor }}" --password-stdin
+
+      - name: Push Docker image
+        env:
+          IMAGE: ${{ steps.image.outputs.image }}
+          TAG: ${{ steps.image.outputs.tag }}
+        run: docker push "${IMAGE}:${TAG}"
